@@ -83,7 +83,7 @@ impl Guest for Component {
             server_id,
             "/ws",
             Some(ws_connect_handler_id),    // Connect handler
-            ws_message_handler_id,         // Message handler
+            ws_message_handler_id,          // Message handler
             Some(ws_disconnect_handler_id), // Disconnect handler
         )?;
 
@@ -441,11 +441,7 @@ fn handle_client_message(
             let conversation_id = generate_conversation_id(content);
 
             // Start a new chat-state actor
-            let chat_state_actor_id = start_chat_state_actor(
-                &conversation_id,
-                client_message.system,
-                client_message.settings,
-            )?;
+            let chat_state_actor_id = start_chat_state_actor(&conversation_id)?;
 
             log(&format!(
                 "Started chat-state actor for conversation {}: {}",
@@ -613,19 +609,13 @@ fn handle_client_message(
 }
 
 // Start a new chat-state actor for a conversation
-fn start_chat_state_actor(
-    conversation_id: &str,
-    system_prompt: Option<String>,
-    settings: Option<HashMap<String, serde_json::Value>>,
-) -> Result<String, String> {
+fn start_chat_state_actor(conversation_id: &str) -> Result<String, String> {
     // Chat-state actor manifest path
     let manifest_path = "/Users/colinrozzi/work/actor-registry/chat-state/manifest.toml";
 
     // Prepare initial state (serialized as JSON)
     let initial_state = serde_json::json!({
         "conversation_id": conversation_id,
-        "system_prompt": system_prompt,
-        "settings": settings,
     });
 
     // Spawn the actor
