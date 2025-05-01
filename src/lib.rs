@@ -59,19 +59,22 @@ impl Guest for Component {
         log(&format!("Created server with ID: {}", server_id));
 
         // Register handlers
+        // Make sure we use the EXACT names that match our exported trait implementation methods
         let api_handler_id = register_handler("handle_request")?;
-        let ws_handler_id = register_handler("handle_websocket")?;
+        let ws_connect_handler_id = register_handler("handle_websocket_connect")?;
+        let ws_message_handler_id = register_handler("handle_websocket_message")?;
+        let ws_disconnect_handler_id = register_handler("handle_websocket_disconnect")?;
 
         log(&format!(
-            "Registered handlers - API: {}, WebSocket: {}",
-            api_handler_id, ws_handler_id
+            "Registered handlers - API: {}, WebSocket Connect: {}, WebSocket Message: {}, WebSocket Disconnect: {}",
+            api_handler_id, ws_connect_handler_id, ws_message_handler_id, ws_disconnect_handler_id
         ));
 
         // Add routes
         add_route(server_id, "/", "GET", api_handler_id)?;
         add_route(server_id, "/index.html", "GET", api_handler_id)?;
         add_route(server_id, "/styles.css", "GET", api_handler_id)?;
-        add_route(server_id, "/app.js", "GET", api_handler_id)?;
+        add_route(server_id, "/bundle.js", "GET", api_handler_id)?;
         add_route(server_id, "/api/conversations", "GET", api_handler_id)?;
         add_route(server_id, "/api/health", "GET", api_handler_id)?;
 
@@ -79,9 +82,9 @@ impl Guest for Component {
         enable_websocket(
             server_id,
             "/ws",
-            Some(ws_handler_id), // Connect handler
-            ws_handler_id,       // Message handler
-            Some(ws_handler_id), // Disconnect handler
+            Some(ws_connect_handler_id),    // Connect handler
+            ws_message_handler_id,         // Message handler
+            Some(ws_disconnect_handler_id), // Disconnect handler
         )?;
 
         // Start the server
