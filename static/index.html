@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="header">
+                <h1>Claude Chat</h1>
+                <button id="new-chat-btn" class="new-chat-button">New Chat</button>
+            </div>
+            <div class="conversation-list" id="conversation-list">
+                <!-- Conversations will be listed here -->
+            </div>
+        </div>
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2 id="current-conversation-title">New Conversation</h2>
+            </div>
+            <div class="messages-container" id="messages-container">
+                <!-- Messages will appear here -->
+                <div class="welcome-message">
+                    <h3>Welcome to Claude Chat</h3>
+                    <p>Start a new conversation or select an existing one from the sidebar.</p>
+                </div>
+            </div>
+            <div class="input-container">
+                <textarea id="message-input" placeholder="Type your message here..."></textarea>
+                <button id="send-button" class="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

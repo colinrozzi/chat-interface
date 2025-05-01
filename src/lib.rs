@@ -1,0 +1,696 @@
+mod bindings;
+mod protocol;
+mod state;
+
+use crate::bindings::exports::ntwk::theater::actor::Guest;
+use crate::bindings::exports::ntwk::theater::http_handlers::Guest as HttpHandlersGuest;
+use crate::bindings::exports::ntwk::theater::message_server_client::Guest as MessageServerClient;
+use crate::bindings::ntwk::theater::http_framework::{
+    add_route, create_server, enable_websocket, register_handler, start_server, ServerConfig,
+};
+use crate::bindings::ntwk::theater::http_types::{HttpRequest, HttpResponse, MiddlewareResult};
+use crate::bindings::ntwk::theater::message_server_host::request;
+use crate::bindings::ntwk::theater::runtime::log;
+use crate::bindings::ntwk::theater::supervisor::spawn;
+use crate::bindings::ntwk::theater::timing::now;
+use crate::bindings::ntwk::theater::types::State;
+use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMessage};
+
+use protocol::{
+    create_conversation_created_message, create_error_message, create_message_response,
+    create_welcome_message, ChatStateMessage, ChatStateResponse, ClientMessage, ServerMessage,
+};
+use state::{
+    add_connection, get_active_conversation, get_actor_id_for_conversation, init_state,
+    register_conversation_actor, remove_connection, set_active_conversation,
+    update_conversation_metadata, InterfaceState,
+};
+
+use serde::{Deserialize, Serialize};
+use sha1::{Digest, Sha1};
+use std::collections::HashMap;
+
+struct Component;
+
+impl Guest for Component {
+    fn init(_state: State, params: (String,)) -> Result<(State,), String> {
+        log("Initializing chat-interface HTTP actor");
+        let (param,) = params;
+        log(&format!("Init parameter: {}", param));
+
+        // Initialize state
+        let interface_state = init_state();
+
+        // Serialize state
+        let state_bytes = match serde_json::to_vec(&interface_state) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(format!("Failed to serialize state: {}", e)),
+        };
+
+        // Set up HTTP server
+        let config = ServerConfig {
+            port: Some(interface_state.server_config.port as u16),
+            host: Some(interface_state.server_config.host.clone()),
+            tls_config: None,
+        };
+
+        // Create a new HTTP server
+        let server_id = create_server(&config)?;
+        log(&format!("Created server with ID: {}", server_id));
+
+        // Register handlers
+        let api_handler_id = register_handler("handle_request")?;
+        let ws_handler_id = register_handler("handle_websocket")?;
+
+        log(&format!(
+            "Registered handlers - API: {}, WebSocket: {}",
+            api_handler_id, ws_handler_id
+        ));
+
+        // Add routes
+        add_route(server_id, "/", "GET", api_handler_id)?;
+        add_route(server_id, "/index.html", "GET", api_handler_id)?;
+        add_route(server_id, "/styles.css", "GET", api_handler_id)?;
+        add_route(server_id, "/app.js", "GET", api_handler_id)?;
+        add_route(server_id, "/api/conversations", "GET", api_handler_id)?;
+        add_route(server_id, "/api/health", "GET", api_handler_id)?;
+
+        // Enable WebSocket support
+        enable_websocket(
+            server_id,
+            "/ws",
+            Some(ws_handler_id), // Connect handler
+            ws_handler_id,       // Message handler
+            Some(ws_handler_id), // Disconnect handler
+        )?;
+
+        // Start the server
+        let port = start_server(server_id)?;
+        log(&format!("Server started on port {}", port));
+
+        Ok((Some(state_bytes),))
+    }
+}
+
+impl HttpHandlersGuest for Component {
+    fn handle_request(
+        state: Option<Vec<u8>>,
+        params: (u64, HttpRequest),
+    ) -> Result<(Option<Vec<u8>>, (HttpResponse,)), String> {
+        let (handler_id, request) = params;
+        log(&format!(
+            "Handling HTTP request with handler ID: {}",
+            handler_id
+        ));
+        log(&format!("Request URI: {}", request.uri));
+
+        // Parse the URI to get the path and query
+        let mut path_parts = request.uri.splitn(2, '?');
+        let path = path_parts.next().unwrap_or("/");
+
+        // Parse state
+        let interface_state: InterfaceState = match state.clone() {
+            Some(bytes) => match serde_json::from_slice(&bytes) {
+                Ok(s) => s,
+                Err(e) => return Err(format!("Failed to parse state: {}", e)),
+            },
+            None => return Err("Missing state".to_string()),
+        };
+
+        // Route handling
+        let response = match path {
+            "/" | "/index.html" => {
+                // Serve HTML chat interface
+                let html = include_str!("../static/index.html");
+                HttpResponse {
+                    status: 200,
+                    headers: vec![("Content-Type".to_string(), "text/html".to_string())],
+                    body: Some(html.as_bytes().to_vec()),
+                }
+            }
+            "/styles.css" => {
+                // Serve CSS file
+                let css = include_str!("../static/styles.css");
+                HttpResponse {
+                    status: 200,
+                    headers: vec![("Content-Type".to_string(), "text/css".to_string())],
+                    body: Some(css.as_bytes().to_vec()),
+                }
+            }
+            "/bundle.js" => {
+                // Serve JavaScript file
+                let js = include_str!("../static/app.js");
+                HttpResponse {
+                    status: 200,
+                    headers: vec![(
+                        "Content-Type".to_string(),
+                        "application/javascript".to_string(),
+                    )],
+                    body: Some(js.as_bytes().to_vec()),
+                }
+            }
+            "/api/conversations" => {
+                // Return list of conversations
+                let conversations: Vec<serde_json::Value> = interface_state
+                    .conversation_metadata
+                    .iter()
+                    .map(|(id, meta)| {
+                        serde_json::json!({
+                            "id": id,
+                            "title": meta.title,
+                            "created_at": meta.created_at,
+                            "updated_at": meta.updated_at,
+                            "message_count": meta.message_count,
+                            "last_message_preview": meta.last_message_preview
+                        })
+                    })
+                    .collect();
+
+                let json =
+                    serde_json::to_string(&conversations).unwrap_or_else(|_| "[]".to_string());
+
+                HttpResponse {
+                    status: 200,
+                    headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                    body: Some(json.as_bytes().to_vec()),
+                }
+            }
+            "/api/health" => {
+                // Health check endpoint
+                let health = serde_json::json!({
+                    "status": "ok",
+                    "connections": interface_state.connections.len(),
+                    "conversations": interface_state.conversation_actors.len()
+                });
+
+                let json = serde_json::to_string(&health)
+                    .unwrap_or_else(|_| "{\"status\":\"error\"}".to_string());
+
+                HttpResponse {
+                    status: 200,
+                    headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                    body: Some(json.as_bytes().to_vec()),
+                }
+            }
+            _ => {
+                // Not found
+                HttpResponse {
+                    status: 404,
+                    headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+                    body: Some("Not Found".as_bytes().to_vec()),
+                }
+            }
+        };
+
+        Ok((state, (response,)))
+    }
+
+    fn handle_middleware(
+        state: Option<Vec<u8>>,
+        params: (u64, HttpRequest),
+    ) -> Result<(Option<Vec<u8>>, (MiddlewareResult,)), String> {
+        let (handler_id, request) = params;
+        log(&format!(
+            "Handling middleware with handler ID: {}",
+            handler_id
+        ));
+
+        // For now, just pass all requests through
+        Ok((
+            state,
+            (MiddlewareResult {
+                proceed: true,
+                request,
+            },),
+        ))
+    }
+
+    fn handle_websocket_connect(
+        state: Option<Vec<u8>>,
+        params: (u64, u64, String, Option<String>),
+    ) -> Result<(Option<Vec<u8>>,), String> {
+        let (handler_id, connection_id, path, _query) = params;
+        log(&format!(
+            "WebSocket connected - Handler: {}, Connection: {}, Path: {}",
+            handler_id, connection_id, path
+        ));
+
+        // Parse state
+        let mut interface_state: InterfaceState = match state {
+            Some(bytes) => match serde_json::from_slice(&bytes) {
+                Ok(s) => s,
+                Err(e) => return Err(format!("Failed to parse state: {}", e)),
+            },
+            None => return Err("Missing state".to_string()),
+        };
+
+        // Add connection to state
+        add_connection(&mut interface_state, connection_id, now());
+
+        // Serialize updated state
+        let updated_state = match serde_json::to_vec(&interface_state) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(format!("Failed to serialize state: {}", e)),
+        };
+
+        Ok((Some(updated_state),))
+    }
+
+    fn handle_websocket_message(
+        state: Option<Vec<u8>>,
+        params: (u64, u64, WebsocketMessage),
+    ) -> Result<(Option<Vec<u8>>, (Vec<WebsocketMessage>,)), String> {
+        let (handler_id, connection_id, message) = params;
+        log(&format!(
+            "WebSocket message received - Handler: {}, Connection: {}",
+            handler_id, connection_id
+        ));
+
+        // Parse state
+        let mut interface_state: InterfaceState = match state {
+            Some(bytes) => match serde_json::from_slice(&bytes) {
+                Ok(s) => s,
+                Err(e) => return Err(format!("Failed to parse state: {}", e)),
+            },
+            None => return Err("Missing state".to_string()),
+        };
+
+        // Extract message content
+        let content = match message.ty {
+            MessageType::Text => {
+                String::from_utf8(message.text.expect("Text data is missing").into())
+                    .unwrap_or_default()
+            }
+            MessageType::Binary => {
+                String::from_utf8(message.data.expect("Binary data is missing")).unwrap_or_default()
+            }
+            _ => String::new(),
+        };
+
+        // Handle client message and get responses
+        let response_messages =
+            handle_client_message(&mut interface_state, connection_id, &content)?;
+
+        // Serialize updated state
+        let updated_state = match serde_json::to_vec(&interface_state) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(format!("Failed to serialize state: {}", e)),
+        };
+
+        Ok((Some(updated_state), (response_messages,)))
+    }
+
+    fn handle_websocket_disconnect(
+        state: Option<Vec<u8>>,
+        params: (u64, u64),
+    ) -> Result<(Option<Vec<u8>>,), String> {
+        let (handler_id, connection_id) = params;
+        log(&format!(
+            "WebSocket disconnected - Handler: {}, Connection: {}",
+            handler_id, connection_id
+        ));
+
+        // Parse state
+        let mut interface_state: InterfaceState = match state {
+            Some(bytes) => match serde_json::from_slice(&bytes) {
+                Ok(s) => s,
+                Err(e) => return Err(format!("Failed to parse state: {}", e)),
+            },
+            None => return Err("Missing state".to_string()),
+        };
+
+        // Remove connection from state
+        remove_connection(&mut interface_state, connection_id);
+
+        // Serialize updated state
+        let updated_state = match serde_json::to_vec(&interface_state) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(format!("Failed to serialize state: {}", e)),
+        };
+
+        Ok((Some(updated_state),))
+    }
+}
+
+impl MessageServerClient for Component {
+    // Default implementations for message server client
+    fn handle_send(
+        state: Option<Vec<u8>>,
+        params: (Vec<u8>,),
+    ) -> Result<(Option<Vec<u8>>,), String> {
+        log("Handling send message");
+        let (data,) = params;
+        log(&format!("Received data: {:?}", data));
+        Ok((state,))
+    }
+
+    fn handle_request(
+        state: Option<Vec<u8>>,
+        params: (String, Vec<u8>),
+    ) -> Result<(Option<Vec<u8>>, (Option<Vec<u8>>,)), String> {
+        log("Handling request message");
+        let (request_id, data) = params;
+        log(&format!(
+            "[req id] {} [data] {}",
+            request_id,
+            String::from_utf8(data.clone()).unwrap_or_else(|_| "Invalid UTF-8".to_string())
+        ));
+
+        Ok((state, (Some(data),)))
+    }
+
+    fn handle_channel_open(
+        state: Option<bindings::exports::ntwk::theater::message_server_client::Json>,
+        params: (bindings::exports::ntwk::theater::message_server_client::Json,),
+    ) -> Result<
+        (
+            Option<bindings::exports::ntwk::theater::message_server_client::Json>,
+            (bindings::exports::ntwk::theater::message_server_client::ChannelAccept,),
+        ),
+        String,
+    > {
+        log("Handling channel open message");
+        log(&format!("Channel open message: {:?}", params));
+        Ok((
+            state,
+            (
+                bindings::exports::ntwk::theater::message_server_client::ChannelAccept {
+                    accepted: true,
+                    message: None,
+                },
+            ),
+        ))
+    }
+
+    fn handle_channel_close(
+        state: Option<bindings::exports::ntwk::theater::message_server_client::Json>,
+        params: (String,),
+    ) -> Result<(Option<bindings::exports::ntwk::theater::message_server_client::Json>,), String>
+    {
+        log("Handling channel close message");
+        log(&format!("Channel close message: {:?}", params));
+        Ok((state,))
+    }
+
+    fn handle_channel_message(
+        state: Option<bindings::exports::ntwk::theater::message_server_client::Json>,
+        params: (
+            String,
+            bindings::exports::ntwk::theater::message_server_client::Json,
+        ),
+    ) -> Result<(Option<bindings::exports::ntwk::theater::message_server_client::Json>,), String>
+    {
+        log("Received channel message");
+        log(&format!("Channel message: {:?}", params));
+        Ok((state,))
+    }
+}
+
+// Handle client messages from WebSocket connections
+fn handle_client_message(
+    interface_state: &mut InterfaceState,
+    connection_id: u64,
+    content: &str,
+) -> Result<Vec<WebsocketMessage>, String> {
+    // Send welcome message for simple test messages
+    if content.trim() == "hello!" {
+        log("Received test hello message, sending welcome response");
+        let welcome_msg = create_welcome_message();
+        return Ok(vec![create_websocket_text_message(&welcome_msg)?]);
+    }
+
+    // Parse client message
+    log(&format!("Parsing client message: {}", content));
+    let client_message: ClientMessage = match serde_json::from_str(content) {
+        Ok(msg) => msg,
+        Err(e) => {
+            log(&format!("Failed to parse client message: {}", e));
+            let error_msg =
+                create_error_message("", &format!("Invalid message format: {}", e), "PARSE_ERROR");
+            return Ok(vec![create_websocket_text_message(&error_msg)?]);
+        }
+    };
+
+    // Handle different actions
+    match client_message.action.as_str() {
+        "new_conversation" => {
+            // Generate a new conversation ID
+            let conversation_id = generate_conversation_id(content);
+
+            // Start a new chat-state actor
+            let chat_state_actor_id = start_chat_state_actor(
+                &conversation_id,
+                client_message.system,
+                client_message.settings,
+            )?;
+
+            log(&format!(
+                "Started chat-state actor for conversation {}: {}",
+                conversation_id, chat_state_actor_id
+            ));
+
+            // Associate connection with conversation
+            set_active_conversation(
+                interface_state,
+                connection_id,
+                conversation_id.clone(),
+                now(),
+            );
+
+            // Register the conversation actor
+            register_conversation_actor(
+                interface_state,
+                conversation_id.clone(),
+                chat_state_actor_id,
+                format!("Conversation {}", &conversation_id[..8]),
+                now(),
+            );
+
+            // Send confirmation to client
+            let response_msg = create_conversation_created_message(&conversation_id);
+            Ok(vec![create_websocket_text_message(&response_msg)?])
+        }
+        "send_message" => {
+            // Get target conversation ID
+            let conversation_id = match client_message.conversation_id {
+                Some(id) if !id.is_empty() => id,
+                _ => {
+                    // Try to get from connection
+                    match get_active_conversation(interface_state, connection_id) {
+                        Some(id) if !id.is_empty() => id,
+                        _ => {
+                            let error_msg = create_error_message(
+                                "",
+                                "No active conversation",
+                                "NO_CONVERSATION",
+                            );
+                            return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                        }
+                    }
+                }
+            };
+
+            // Check message content
+            let message_content = match client_message.message {
+                Some(content) if !content.is_empty() => content,
+                _ => {
+                    let error_msg =
+                        create_error_message(&conversation_id, "Empty message", "EMPTY_MESSAGE");
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            };
+
+            // Get actor ID for this conversation
+            let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
+                Some(id) => id,
+                None => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Conversation not found",
+                        "CONVERSATION_NOT_FOUND",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            };
+
+            // Create message for chat-state actor
+            let chat_state_msg = ChatStateMessage {
+                action: "send_message".to_string(),
+                message: Some(message_content),
+                settings: None,
+                history_params: None,
+            };
+
+            // Send to chat-state actor
+            let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+
+            // Process response
+            match response.response_type.as_str() {
+                "message" => {
+                    if let Some(message) = response.message {
+                        // Update metadata
+                        if let Some(metadata) = interface_state
+                            .conversation_metadata
+                            .get_mut(&conversation_id)
+                        {
+                            metadata.message_count += 2; // User + Assistant messages
+                            metadata.updated_at = now();
+                            metadata.last_message_preview =
+                                Some(get_message_preview(&message.content));
+                        }
+
+                        // Return message to client
+                        let server_msg =
+                            create_message_response(&conversation_id, &message.content, None);
+                        return Ok(vec![create_websocket_text_message(&server_msg)?]);
+                    }
+                }
+                "error" => {
+                    if let Some(error) = response.error {
+                        let error_msg =
+                            create_error_message(&conversation_id, &error.message, &error.code);
+                        return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                    }
+                }
+                _ => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Unexpected response from chat-state actor",
+                        "INTERNAL_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            }
+
+            // Fallback error in case we couldn't process the response
+            let error_msg = create_error_message(
+                &conversation_id,
+                "Failed to process response",
+                "INTERNAL_ERROR",
+            );
+            Ok(vec![create_websocket_text_message(&error_msg)?])
+        }
+        "list_conversations" => {
+            // Simple response with the list of conversations
+            let conversations: Vec<serde_json::Value> = interface_state
+                .conversation_metadata
+                .iter()
+                .map(|(id, meta)| {
+                    serde_json::json!({
+                        "id": id,
+                        "title": meta.title,
+                        "created_at": meta.created_at,
+                        "updated_at": meta.updated_at,
+                        "message_count": meta.message_count,
+                        "last_message_preview": meta.last_message_preview
+                    })
+                })
+                .collect();
+
+            let response = ServerMessage {
+                message_type: "conversation_list".to_string(),
+                conversation_id: "".to_string(),
+                content: serde_json::to_string(&conversations).unwrap_or_default(),
+                error: None,
+                meta: None,
+            };
+
+            Ok(vec![create_websocket_text_message(&response)?])
+        }
+        _ => {
+            // Unknown action
+            let error_msg = create_error_message(
+                "",
+                &format!("Unknown action: {}", client_message.action),
+                "UNKNOWN_ACTION",
+            );
+            Ok(vec![create_websocket_text_message(&error_msg)?])
+        }
+    }
+}
+
+// Start a new chat-state actor for a conversation
+fn start_chat_state_actor(
+    conversation_id: &str,
+    system_prompt: Option<String>,
+    settings: Option<HashMap<String, serde_json::Value>>,
+) -> Result<String, String> {
+    // Chat-state actor manifest path
+    let manifest_path = "/Users/colinrozzi/work/actor-registry/chat-state/manifest.toml";
+
+    // Prepare initial state (serialized as JSON)
+    let initial_state = serde_json::json!({
+        "conversation_id": conversation_id,
+        "system_prompt": system_prompt,
+        "settings": settings,
+    });
+
+    // Spawn the actor
+    let actor_id = spawn(manifest_path, Some(initial_state.to_string().as_bytes()))?;
+    log(&format!("Spawned chat-state actor with ID: {}", actor_id));
+
+    Ok(actor_id)
+}
+
+// Forward a message to a chat-state actor
+fn forward_to_chat_state(
+    actor_id: &str,
+    message: &ChatStateMessage,
+) -> Result<ChatStateResponse, String> {
+    // Serialize the message
+    let message_bytes = match serde_json::to_vec(message) {
+        Ok(bytes) => bytes,
+        Err(e) => return Err(format!("Failed to serialize message: {}", e)),
+    };
+
+    // Send request to chat-state actor
+    let response_bytes = match request(actor_id, &message_bytes) {
+        Ok(response) => response,
+        Err(e) => return Err(format!("Failed to send request to chat-state actor: {}", e)),
+    };
+
+    // Parse response
+    match serde_json::from_slice::<ChatStateResponse>(&response_bytes) {
+        Ok(response) => Ok(response),
+        Err(e) => Err(format!("Failed to parse response: {}", e)),
+    }
+}
+
+// Create a WebSocket text message from a ServerMessage
+fn create_websocket_text_message(message: &ServerMessage) -> Result<WebsocketMessage, String> {
+    match serde_json::to_string(message) {
+        Ok(text) => Ok(WebsocketMessage {
+            ty: MessageType::Text,
+            text: Some(text.into()),
+            data: None,
+        }),
+        Err(e) => Err(format!("Failed to serialize server message: {}", e)),
+    }
+}
+
+// Get a preview of a message (for metadata)
+fn get_message_preview(content: &str) -> String {
+    if content.len() <= 50 {
+        content.to_string()
+    } else {
+        format!("{}...", &content[0..47])
+    }
+}
+
+// Generate a unique conversation ID
+fn generate_conversation_id(string: impl AsRef<[u8]>) -> String {
+    // Get current timestamp
+    let timestamp = now();
+
+    // Create a unique hash
+    let mut sha1 = Sha1::new();
+    sha1.update(string.as_ref());
+    sha1.update(timestamp.to_string().as_bytes());
+    let hash = sha1.finalize();
+    let hash_str = hex::encode(hash);
+
+    // Format with timestamp for better identification
+    format!("conv-{}-{}", timestamp, hash_str)
+}
+
+bindings::export!(Component with_types_in bindings);
