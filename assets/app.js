@@ -106,11 +106,21 @@ function sendMessage() {
     // Set waiting state
     isWaitingForResponse = true;
     sendButton.disabled = true;
+
+    let messageObj = {
+        role: 'user',
+        content: [
+            {
+                type: 'text',
+                text: message
+            }
+        ]
+    }
     
     // Send the message to the server
     sendAction('send_message', {
         conversation_id: activeConversationId,
-        message: message
+        message: messageObj
     });
     
     // Clear the input

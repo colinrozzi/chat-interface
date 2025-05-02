@@ -471,7 +471,6 @@ fn handle_client_message(
         ClientMessage::SendMessage {
             conversation_id,
             message,
-            meta,
         } => {
             // Get actor ID for this conversation
             let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
@@ -486,7 +485,7 @@ fn handle_client_message(
                 }
             };
 
-            let chat_state_msg = ChatStateRequest::AddMessage(message);
+            let chat_state_msg = ChatStateRequest::AddMessage { message };
 
             // Send to chat-state actor
             let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
@@ -595,7 +594,7 @@ fn handle_client_message(
             };
 
             // Forward request to chat-state actor
-            let chat_state_msg = ChatStateRequest::UpdateSettings(settings);
+            let chat_state_msg = ChatStateRequest::UpdateSettings { settings };
             let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
             match response {
                 ChatStateResponse::Success => {

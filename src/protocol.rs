@@ -14,7 +14,6 @@ pub enum ClientMessage {
     SendMessage {
         conversation_id: String,
         message: Message,
-        meta: Option<HashMap<String, String>>,
     },
 
     /// List all conversations
@@ -157,23 +156,19 @@ pub struct ConversationSettings {
 #[serde(tag = "type")]
 pub enum ChatStateRequest {
     #[serde(rename = "add_message")]
-    AddMessage(Message),
+    AddMessage { message: Message },
     #[serde(rename = "generate_completion")]
     GenerateCompletion,
     #[serde(rename = "get_settings")]
     GetSettings,
     #[serde(rename = "update_settings")]
-    UpdateSettings(ConversationSettings),
-    #[serde(rename = "update_system_prompt")]
-    UpdateSystemPrompt(Option<String>),
-    #[serde(rename = "update_title")]
-    UpdateTitle(String),
+    UpdateSettings { settings: ConversationSettings },
     #[serde(rename = "get_history")]
     GetHistory,
     #[serde(rename = "subscribe")]
-    Subscribe(String),
+    Subscribe { sub_id: String },
     #[serde(rename = "unsubscribe")]
-    Unsubscribe(String),
+    Unsubscribe { sub_id: String },
 }
 
 /// Data associated with the response
