@@ -122,7 +122,7 @@ impl HttpHandlersGuest for Component {
         let response = match path {
             "/" | "/index.html" => {
                 // Serve HTML chat interface
-                let html = include_str!("../static/index.html");
+                let html = include_str!("../assets/index.html");
                 HttpResponse {
                     status: 200,
                     headers: vec![("Content-Type".to_string(), "text/html".to_string())],
@@ -131,7 +131,7 @@ impl HttpHandlersGuest for Component {
             }
             "/styles.css" => {
                 // Serve CSS file
-                let css = include_str!("../static/styles.css");
+                let css = include_str!("../assets/styles.css");
                 HttpResponse {
                     status: 200,
                     headers: vec![("Content-Type".to_string(), "text/css".to_string())],
@@ -140,7 +140,7 @@ impl HttpHandlersGuest for Component {
             }
             "/bundle.js" => {
                 // Serve JavaScript file
-                let js = include_str!("../static/app.js");
+                let js = include_str!("../assets/app.js");
                 HttpResponse {
                     status: 200,
                     headers: vec![(
