@@ -67,6 +67,20 @@ pub enum ServerMessage {
     ConversationList {
         conversations: HashMap<String, ConversationMetadata>,
     },
+    
+    /// Settings information
+    #[serde(rename = "settings")]
+    Settings {
+        conversation_id: String,
+        settings: ConversationSettings,
+    },
+    
+    /// Settings updated confirmation
+    #[serde(rename = "settings_updated")]
+    SettingsUpdated {
+        conversation_id: String,
+        message: String,
+    },
 }
 
 /// Metadata about a conversation for UI display
@@ -216,5 +230,24 @@ pub fn create_message_response(
         conversation_id: conversation_id.to_string(),
         message,
         meta,
+    }
+}
+
+/// Create a settings response
+pub fn create_settings_response(
+    conversation_id: &str,
+    settings: ConversationSettings,
+) -> ServerMessage {
+    ServerMessage::Settings {
+        conversation_id: conversation_id.to_string(),
+        settings,
+    }
+}
+
+/// Create a settings updated response
+pub fn create_settings_updated_response(conversation_id: &str) -> ServerMessage {
+    ServerMessage::SettingsUpdated {
+        conversation_id: conversation_id.to_string(),
+        message: "Settings updated successfully".to_string(),
     }
 }
