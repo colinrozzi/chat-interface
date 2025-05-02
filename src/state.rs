@@ -1,3 +1,4 @@
+use crate::protocol::ConversationMetadata;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -6,13 +7,13 @@ use std::collections::HashMap;
 pub struct InterfaceState {
     /// Map of user connections to their active conversation IDs
     pub connections: HashMap<u64, ConnectionInfo>,
-    
+
     /// Map of conversation IDs to chat-state actor IDs
     pub conversation_actors: HashMap<String, String>,
-    
+
     /// Minimal metadata about conversations for UI display
     pub conversation_metadata: HashMap<String, ConversationMetadata>,
-    
+
     /// Server configuration
     pub server_config: ServerConfig,
 }
@@ -22,37 +23,15 @@ pub struct InterfaceState {
 pub struct ConnectionInfo {
     /// Unique identifier for this connection
     pub connection_id: u64,
-    
+
     /// Currently active conversation for this connection, if any
     pub active_conversation_id: Option<String>,
-    
+
     /// When the connection was established (timestamp)
     pub connected_at: u64,
-    
+
     /// When the connection was last active (timestamp)
     pub last_activity: u64,
-}
-
-/// Metadata about a conversation for UI display
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ConversationMetadata {
-    /// Unique identifier for this conversation
-    pub id: String,
-    
-    /// Human-readable title for the conversation
-    pub title: String,
-    
-    /// When the conversation was created (timestamp)
-    pub created_at: u64,
-    
-    /// When the conversation was last updated (timestamp)
-    pub updated_at: u64,
-    
-    /// Number of messages in the conversation
-    pub message_count: u32,
-    
-    /// Preview of the last message (truncated)
-    pub last_message_preview: Option<String>,
 }
 
 /// Configuration for the HTTP server
@@ -60,10 +39,10 @@ pub struct ConversationMetadata {
 pub struct ServerConfig {
     /// Port to listen on
     pub port: u16,
-    
+
     /// Host address to bind to
     pub host: String,
-    
+
     /// Maximum number of connections to allow
     pub max_connections: u32,
 }
@@ -125,8 +104,10 @@ pub fn register_conversation_actor(
     timestamp: u64,
 ) {
     // Save the actor ID
-    state.conversation_actors.insert(conversation_id.clone(), actor_id);
-    
+    state
+        .conversation_actors
+        .insert(conversation_id.clone(), actor_id);
+
     // Create metadata entry
     state.conversation_metadata.insert(
         conversation_id.clone(),
@@ -153,7 +134,7 @@ pub fn update_conversation_metadata(
         if let Some(count) = message_count {
             metadata.message_count = count;
         }
-        
+
         if let Some(message) = last_message {
             // Truncate message for preview
             let preview = if message.len() > 50 {
@@ -163,7 +144,7 @@ pub fn update_conversation_metadata(
             };
             metadata.last_message_preview = Some(preview);
         }
-        
+
         metadata.updated_at = timestamp;
         true
     } else {
@@ -172,7 +153,10 @@ pub fn update_conversation_metadata(
 }
 
 /// Get the actor ID for a conversation
-pub fn get_actor_id_for_conversation(state: &InterfaceState, conversation_id: &str) -> Option<String> {
+pub fn get_actor_id_for_conversation(
+    state: &InterfaceState,
+    conversation_id: &str,
+) -> Option<String> {
     state.conversation_actors.get(conversation_id).cloned()
 }
 

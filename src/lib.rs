@@ -18,17 +18,15 @@ use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMess
 
 use protocol::{
     create_conversation_created_message, create_error_message, create_message_response,
-    create_welcome_message, ChatStateMessage, ChatStateResponse, ClientMessage, ServerMessage,
+    create_welcome_message, ChatStateRequest, ChatStateResponse, ClientMessage, ServerMessage,
 };
 use state::{
     add_connection, get_active_conversation, get_actor_id_for_conversation, init_state,
-    register_conversation_actor, remove_connection, set_active_conversation,
-    update_conversation_metadata, InterfaceState,
+    register_conversation_actor, remove_connection, set_active_conversation, InterfaceState,
 };
 
-use serde::{Deserialize, Serialize};
+use anthropic_types::{Message, MessageContent};
 use sha1::{Digest, Sha1};
-use std::collections::HashMap;
 
 struct Component;
 
@@ -512,43 +510,43 @@ fn handle_client_message(
                 }
             };
 
-            // Create message for chat-state actor
-            let chat_state_msg = ChatStateMessage {
-                action: "send_message".to_string(),
-                message: Some(message_content),
-                settings: None,
-                history_params: None,
-            };
+            let chat_state_msg = ChatStateRequest::AddMessage(Message {
+                role: "user".to_string(),
+                content: vec![MessageContent::Text {
+                    text: message_content,
+                }],
+            });
 
             // Send to chat-state actor
             let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
 
-            // Process response
-            match response.response_type.as_str() {
-                "message" => {
-                    if let Some(message) = response.message {
-                        // Update metadata
-                        if let Some(metadata) = interface_state
-                            .conversation_metadata
-                            .get_mut(&conversation_id)
-                        {
-                            metadata.message_count += 2; // User + Assistant messages
-                            metadata.updated_at = now();
-                            metadata.last_message_preview =
-                                Some(get_message_preview(&message.content));
-                        }
+            match response {
+                ChatStateResponse::Success => {
+                    let completion_response =
+                        forward_to_chat_state(&actor_id, &ChatStateRequest::GenerateCompletion)?;
 
-                        // Return message to client
-                        let server_msg =
-                            create_message_response(&conversation_id, &message.content, None);
-                        return Ok(vec![create_websocket_text_message(&server_msg)?]);
-                    }
-                }
-                "error" => {
-                    if let Some(error) = response.error {
-                        let error_msg =
-                            create_error_message(&conversation_id, &error.message, &error.code);
-                        return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                    match completion_response {
+                        ChatStateResponse::Message(message) => {
+                            let response_msg =
+                                create_message_response(&conversation_id, message, None);
+                            return Ok(vec![create_websocket_text_message(&response_msg)?]);
+                        }
+                        ChatStateResponse::Error(error) => {
+                            let error_msg = create_error_message(
+                                &conversation_id,
+                                &format!("Error from chat-state actor: {:?}", error),
+                                "CHAT_STATE_ERROR",
+                            );
+                            return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                        }
+                        _ => {
+                            let error_msg = create_error_message(
+                                &conversation_id,
+                                "Unexpected response from chat-state actor",
+                                "INTERNAL_ERROR",
+                            );
+                            return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                        }
                     }
                 }
                 _ => {
@@ -560,38 +558,10 @@ fn handle_client_message(
                     return Ok(vec![create_websocket_text_message(&error_msg)?]);
                 }
             }
-
-            // Fallback error in case we couldn't process the response
-            let error_msg = create_error_message(
-                &conversation_id,
-                "Failed to process response",
-                "INTERNAL_ERROR",
-            );
-            Ok(vec![create_websocket_text_message(&error_msg)?])
         }
         "list_conversations" => {
-            // Simple response with the list of conversations
-            let conversations: Vec<serde_json::Value> = interface_state
-                .conversation_metadata
-                .iter()
-                .map(|(id, meta)| {
-                    serde_json::json!({
-                        "id": id,
-                        "title": meta.title,
-                        "created_at": meta.created_at,
-                        "updated_at": meta.updated_at,
-                        "message_count": meta.message_count,
-                        "last_message_preview": meta.last_message_preview
-                    })
-                })
-                .collect();
-
-            let response = ServerMessage {
-                message_type: "conversation_list".to_string(),
-                conversation_id: "".to_string(),
-                content: serde_json::to_string(&conversations).unwrap_or_default(),
-                error: None,
-                meta: None,
+            let response = ServerMessage::ConversationList {
+                conversations: interface_state.conversation_metadata.clone(),
             };
 
             Ok(vec![create_websocket_text_message(&response)?])
@@ -628,16 +598,16 @@ fn start_chat_state_actor(conversation_id: &str) -> Result<String, String> {
 // Forward a message to a chat-state actor
 fn forward_to_chat_state(
     actor_id: &str,
-    message: &ChatStateMessage,
+    req: &ChatStateRequest,
 ) -> Result<ChatStateResponse, String> {
     // Serialize the message
-    let message_bytes = match serde_json::to_vec(message) {
+    let req_bytes = match serde_json::to_vec(req) {
         Ok(bytes) => bytes,
         Err(e) => return Err(format!("Failed to serialize message: {}", e)),
     };
 
     // Send request to chat-state actor
-    let response_bytes = match request(actor_id, &message_bytes) {
+    let response_bytes = match request(actor_id, &req_bytes) {
         Ok(response) => response,
         Err(e) => return Err(format!("Failed to send request to chat-state actor: {}", e)),
     };
@@ -658,15 +628,6 @@ fn create_websocket_text_message(message: &ServerMessage) -> Result<WebsocketMes
             data: None,
         }),
         Err(e) => Err(format!("Failed to serialize server message: {}", e)),
-    }
-}
-
-// Get a preview of a message (for metadata)
-fn get_message_preview(content: &str) -> String {
-    if content.len() <= 50 {
-        content.to_string()
-    } else {
-        format!("{}...", &content[0..47])
     }
 }
 
