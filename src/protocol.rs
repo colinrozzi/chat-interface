@@ -149,6 +149,12 @@ pub struct ConversationSettings {
 
     /// Any additional model parameters
     pub additional_params: Option<HashMap<String, serde_json::Value>>,
+    
+    /// System prompt to use
+    pub system_prompt: Option<String>,
+    
+    /// Title of the conversation
+    pub title: Option<String>,
 }
 
 /// Messages received by the chat-state actor

@@ -475,6 +475,9 @@ function switchConversation(conversationId) {
     sendAction('get_history', {
         conversation_id: conversationId
     });
+    
+    // Also load settings for this conversation
+    loadConversationSettings(conversationId);
 }
 
 // Clear messages container
@@ -518,9 +521,13 @@ function setupSettingsButton() {
 // Toggle settings panel visibility
 function toggleSettingsPanel() {
     if (settingsPanel.classList.contains('collapsed')) {
-        settingsPanel.classList.remove('collapsed');
+        // Only show settings panel if there's an active conversation
         if (activeConversationId) {
+            settingsPanel.classList.remove('collapsed');
             loadConversationSettings(activeConversationId);
+        } else {
+            showError('Please select or create a conversation first');
+            return;
         }
     } else {
         settingsPanel.classList.add('collapsed');
@@ -543,20 +550,22 @@ function updateSettingsForm(settings) {
     
     // Update model select
     const modelSelect = document.getElementById('model-select');
-    if (settings.model && modelSelect) {
-        modelSelect.value = settings.model;
+    if (modelSelect) {
+        modelSelect.value = settings.model || 'claude-3-7-sonnet-20250219';
     }
     
     // Update temperature
-    if (settings.temperature !== undefined && temperatureInput) {
-        temperatureInput.value = settings.temperature;
-        temperatureValue.textContent = settings.temperature;
+    if (temperatureInput) {
+        // Use the server setting if defined, otherwise default to 0.7
+        const temp = settings.temperature !== undefined ? settings.temperature : 0.7;
+        temperatureInput.value = temp;
+        temperatureValue.textContent = temp;
     }
     
     // Update max tokens
     const maxTokensInput = document.getElementById('max-tokens-input');
-    if (settings.max_tokens && maxTokensInput) {
-        maxTokensInput.value = settings.max_tokens;
+    if (maxTokensInput) {
+        maxTokensInput.value = settings.max_tokens || 4096;
     }
     
     // Update system prompt
@@ -585,13 +594,18 @@ function saveSettings(event) {
     }
     
     const formData = new FormData(settingsForm);
+    
+    // Create a correctly formatted settings object that matches the protocol
     const settings = {
         model: formData.get('model'),
         temperature: parseFloat(formData.get('temperature')),
         max_tokens: parseInt(formData.get('max_tokens')),
-        system_prompt: formData.get('system_prompt'),
-        title: formData.get('title')
+        title: formData.get('title'),
+        system_prompt: formData.get('system_prompt') || null,
+        additional_params: {} // Include empty object for additional parameters
     };
+    
+    console.log('Saving settings:', settings);
     
     // Send update to server
     sendAction('update_settings', {
@@ -630,4 +644,40 @@ function showMessage(message) {
 // Initialize the settings panel
 function initSettingsPanel() {
     settingsPanel.classList.add('collapsed');
+    
+    // Reset settings form to default values
+    resetSettingsForm();
+}
+
+// Reset settings form to blank/default values
+function resetSettingsForm() {
+    // Clear model select (default is first option)
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+        modelSelect.selectedIndex = 0;
+    }
+    
+    // Reset temperature to default
+    if (temperatureInput) {
+        temperatureInput.value = 0.7;
+        temperatureValue.textContent = 0.7;
+    }
+    
+    // Reset max tokens
+    const maxTokensInput = document.getElementById('max-tokens-input');
+    if (maxTokensInput) {
+        maxTokensInput.value = 4096;
+    }
+    
+    // Clear system prompt
+    const systemPromptInput = document.getElementById('system-prompt-input');
+    if (systemPromptInput) {
+        systemPromptInput.value = '';
+    }
+    
+    // Clear title
+    const titleInput = document.getElementById('title-input');
+    if (titleInput) {
+        titleInput.value = '';
+    }
 }
