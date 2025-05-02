@@ -17,7 +17,8 @@ use crate::bindings::ntwk::theater::types::State;
 use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMessage};
 
 use protocol::{
-    create_conversation_created_message, create_error_message, create_message_response,
+    create_conversation_created_message, create_conversation_response, create_error_message,
+    create_message_response, create_settings_response, create_success_response,
     create_welcome_message, ChatStateRequest, ChatStateResponse, ClientMessage, ServerMessage,
 };
 use state::{
@@ -433,8 +434,8 @@ fn handle_client_message(
     };
 
     // Handle different actions
-    match client_message.action.as_str() {
-        "new_conversation" => {
+    match client_message {
+        ClientMessage::NewConversation => {
             // Generate a new conversation ID
             let conversation_id = generate_conversation_id(content);
 
@@ -467,36 +468,11 @@ fn handle_client_message(
             let response_msg = create_conversation_created_message(&conversation_id);
             Ok(vec![create_websocket_text_message(&response_msg)?])
         }
-        "send_message" => {
-            // Get target conversation ID
-            let conversation_id = match client_message.conversation_id {
-                Some(id) if !id.is_empty() => id,
-                _ => {
-                    // Try to get from connection
-                    match get_active_conversation(interface_state, connection_id) {
-                        Some(id) if !id.is_empty() => id,
-                        _ => {
-                            let error_msg = create_error_message(
-                                "",
-                                "No active conversation",
-                                "NO_CONVERSATION",
-                            );
-                            return Ok(vec![create_websocket_text_message(&error_msg)?]);
-                        }
-                    }
-                }
-            };
-
-            // Check message content
-            let message_content = match client_message.message {
-                Some(content) if !content.is_empty() => content,
-                _ => {
-                    let error_msg =
-                        create_error_message(&conversation_id, "Empty message", "EMPTY_MESSAGE");
-                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
-                }
-            };
-
+        ClientMessage::SendMessage {
+            conversation_id,
+            message,
+            meta,
+        } => {
             // Get actor ID for this conversation
             let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
                 Some(id) => id,
@@ -510,12 +486,7 @@ fn handle_client_message(
                 }
             };
 
-            let chat_state_msg = ChatStateRequest::AddMessage(Message {
-                role: "user".to_string(),
-                content: vec![MessageContent::Text {
-                    text: message_content,
-                }],
-            });
+            let chat_state_msg = ChatStateRequest::AddMessage(message);
 
             // Send to chat-state actor
             let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
@@ -526,12 +497,12 @@ fn handle_client_message(
                         forward_to_chat_state(&actor_id, &ChatStateRequest::GenerateCompletion)?;
 
                     match completion_response {
-                        ChatStateResponse::Message(message) => {
+                        ChatStateResponse::Message { message } => {
                             let response_msg =
                                 create_message_response(&conversation_id, message, None);
                             return Ok(vec![create_websocket_text_message(&response_msg)?]);
                         }
-                        ChatStateResponse::Error(error) => {
+                        ChatStateResponse::Error { error } => {
                             let error_msg = create_error_message(
                                 &conversation_id,
                                 &format!("Error from chat-state actor: {:?}", error),
@@ -559,21 +530,136 @@ fn handle_client_message(
                 }
             }
         }
-        "list_conversations" => {
+        ClientMessage::ListConversations => {
             let response = ServerMessage::ConversationList {
                 conversations: interface_state.conversation_metadata.clone(),
             };
 
             Ok(vec![create_websocket_text_message(&response)?])
         }
-        _ => {
-            // Unknown action
-            let error_msg = create_error_message(
-                "",
-                &format!("Unknown action: {}", client_message.action),
-                "UNKNOWN_ACTION",
-            );
-            Ok(vec![create_websocket_text_message(&error_msg)?])
+        ClientMessage::GetSettings { conversation_id } => {
+            // Get actor ID for this conversation
+            let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
+                Some(id) => id,
+                None => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Conversation not found",
+                        "CONVERSATION_NOT_FOUND",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            };
+
+            // Forward request to chat-state actor
+            let chat_state_msg = ChatStateRequest::GetSettings;
+            let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+            match response {
+                ChatStateResponse::Settings { settings } => {
+                    let response_msg = create_settings_response(&conversation_id, settings);
+                    return Ok(vec![create_websocket_text_message(&response_msg)?]);
+                }
+                ChatStateResponse::Error { error } => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        &format!("Error from chat-state actor: {:?}", error),
+                        "CHAT_STATE_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+                _ => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Unexpected response from chat-state actor",
+                        "INTERNAL_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            }
+        }
+        ClientMessage::UpdateSettings {
+            conversation_id,
+            settings,
+        } => {
+            // Get actor ID for this conversation
+            let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
+                Some(id) => id,
+                None => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Conversation not found",
+                        "CONVERSATION_NOT_FOUND",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            };
+
+            // Forward request to chat-state actor
+            let chat_state_msg = ChatStateRequest::UpdateSettings(settings);
+            let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+            match response {
+                ChatStateResponse::Success => {
+                    let success_msg = create_success_response();
+                    return Ok(vec![create_websocket_text_message(&success_msg)?]);
+                }
+                ChatStateResponse::Error { error } => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        &format!("Error from chat-state actor: {:?}", error),
+                        "CHAT_STATE_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+                _ => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Unexpected response from chat-state actor",
+                        "INTERNAL_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            }
+        }
+        ClientMessage::GetConversation { conversation_id } => {
+            // Get actor ID for this conversation
+            let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
+                Some(id) => id,
+                None => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Conversation not found",
+                        "CONVERSATION_NOT_FOUND",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            };
+
+            // Forward request to chat-state actor
+            let chat_state_msg = ChatStateRequest::GetHistory;
+            let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+
+            match response {
+                ChatStateResponse::History { messages } => {
+                    let response_msg = create_conversation_response(&conversation_id, messages);
+                    return Ok(vec![create_websocket_text_message(&response_msg)?]);
+                }
+                ChatStateResponse::Error { error } => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        &format!("Error from chat-state actor: {:?}", error),
+                        "CHAT_STATE_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+                _ => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        "Unexpected response from chat-state actor",
+                        "INTERNAL_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            }
         }
     }
 }

@@ -2,23 +2,39 @@ use anthropic_types::Message;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Messages sent from clients to the server
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ClientMessage {
-    /// Action to perform: "new_conversation", "send_message", "list_conversations", etc.
-    pub action: String,
+#[serde(tag = "action")]
+pub enum ClientMessage {
+    /// Create a new conversation
+    #[serde(rename = "new_conversation")]
+    NewConversation,
 
-    /// Target conversation ID (for actions that operate on a specific conversation)
-    pub conversation_id: Option<String>,
+    /// Send a message to the server
+    #[serde(rename = "send_message")]
+    SendMessage {
+        conversation_id: String,
+        message: Message,
+        meta: Option<HashMap<String, String>>,
+    },
 
-    /// Message content (for send_message action)
-    pub message: Option<String>,
+    /// List all conversations
+    #[serde(rename = "list_conversations")]
+    ListConversations,
 
-    /// System prompt (for new_conversation action)
-    pub system: Option<String>,
+    /// Get conversation history
+    #[serde(rename = "get_history")]
+    GetConversation { conversation_id: String },
 
-    /// Additional settings or parameters
-    pub settings: Option<HashMap<String, serde_json::Value>>,
+    /// Update conversation settings
+    #[serde(rename = "update_settings")]
+    UpdateSettings {
+        conversation_id: String,
+        settings: ConversationSettings,
+    },
+
+    /// Get conversation settings
+    #[serde(rename = "get_settings")]
+    GetSettings { conversation_id: String },
 }
 
 /// Messages sent from server to clients
@@ -39,9 +55,8 @@ pub enum ServerMessage {
         message: String,
     },
 
-    /// Message containing the conversation history
-    #[serde(rename = "history")]
-    History {
+    #[serde(rename = "conversation")]
+    Conversation {
         conversation_id: String,
         messages: Vec<Message>,
     },
@@ -67,20 +82,23 @@ pub enum ServerMessage {
     ConversationList {
         conversations: HashMap<String, ConversationMetadata>,
     },
-    
+
     /// Settings information
     #[serde(rename = "settings")]
     Settings {
         conversation_id: String,
         settings: ConversationSettings,
     },
-    
+
     /// Settings updated confirmation
     #[serde(rename = "settings_updated")]
     SettingsUpdated {
         conversation_id: String,
         message: String,
     },
+
+    #[serde(rename = "success")]
+    Success,
 }
 
 /// Metadata about a conversation for UI display
@@ -142,6 +160,8 @@ pub enum ChatStateRequest {
     AddMessage(Message),
     #[serde(rename = "generate_completion")]
     GenerateCompletion,
+    #[serde(rename = "get_settings")]
+    GetSettings,
     #[serde(rename = "update_settings")]
     UpdateSettings(ConversationSettings),
     #[serde(rename = "update_system_prompt")]
@@ -164,16 +184,16 @@ pub enum ChatStateResponse {
     Success,
 
     #[serde(rename = "message")]
-    Message(Message),
+    Message { message: Message },
 
     #[serde(rename = "history")]
-    History(Vec<Message>),
+    History { messages: Vec<Message> },
 
     #[serde(rename = "settings")]
-    Settings(ConversationSettings),
+    Settings { settings: ConversationSettings },
 
     #[serde(rename = "error")]
-    Error(ErrorInfo),
+    Error { error: ErrorInfo },
 }
 
 /// Error information
@@ -220,6 +240,16 @@ pub fn create_error_message(
     }
 }
 
+pub fn create_conversation_response(
+    conversation_id: &str,
+    messages: Vec<Message>,
+) -> ServerMessage {
+    ServerMessage::Conversation {
+        conversation_id: conversation_id.to_string(),
+        messages,
+    }
+}
+
 /// Create a message response
 pub fn create_message_response(
     conversation_id: &str,
@@ -231,6 +261,10 @@ pub fn create_message_response(
         message,
         meta,
     }
+}
+
+pub fn create_success_response() -> ServerMessage {
+    ServerMessage::Success
 }
 
 /// Create a settings response
