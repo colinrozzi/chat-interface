@@ -18,7 +18,7 @@ use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMess
 
 use protocol::{
     create_conversation_created_message, create_conversation_response, create_error_message,
-    create_message_response, create_settings_response, create_success_response,
+    create_messages_response, create_settings_response, create_success_response,
     create_welcome_message, ChatStateRequest, ChatStateResponse, ClientMessage, ServerMessage,
 };
 use state::{
@@ -496,9 +496,8 @@ fn handle_client_message(
                         forward_to_chat_state(&actor_id, &ChatStateRequest::GenerateCompletion)?;
 
                     match completion_response {
-                        ChatStateResponse::Message { message } => {
-                            let response_msg =
-                                create_message_response(&conversation_id, message, None);
+                        ChatStateResponse::Completion { messages } => {
+                            let response_msg = create_messages_response(&conversation_id, messages);
                             return Ok(vec![create_websocket_text_message(&response_msg)?]);
                         }
                         ChatStateResponse::Error { error } => {

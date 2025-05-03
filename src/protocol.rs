@@ -69,11 +69,10 @@ pub enum ServerMessage {
     },
 
     /// General message with content
-    #[serde(rename = "message")]
-    Message {
+    #[serde(rename = "messages")]
+    Messages {
         conversation_id: String,
-        message: Message,
-        meta: Option<HashMap<String, String>>,
+        messages: Vec<Message>,
     },
 
     /// List of conversations
@@ -149,10 +148,10 @@ pub struct ConversationSettings {
 
     /// Any additional model parameters
     pub additional_params: Option<HashMap<String, serde_json::Value>>,
-    
+
     /// System prompt to use
     pub system_prompt: Option<String>,
-    
+
     /// Title of the conversation
     pub title: Option<String>,
 }
@@ -186,6 +185,9 @@ pub enum ChatStateResponse {
 
     #[serde(rename = "message")]
     Message { message: Message },
+
+    #[serde(rename = "completion")]
+    Completion { messages: Vec<Message> },
 
     #[serde(rename = "history")]
     History { messages: Vec<Message> },
@@ -252,15 +254,10 @@ pub fn create_conversation_response(
 }
 
 /// Create a message response
-pub fn create_message_response(
-    conversation_id: &str,
-    message: Message,
-    meta: Option<HashMap<String, String>>,
-) -> ServerMessage {
-    ServerMessage::Message {
+pub fn create_messages_response(conversation_id: &str, messages: Vec<Message>) -> ServerMessage {
+    ServerMessage::Messages {
         conversation_id: conversation_id.to_string(),
-        message,
-        meta,
+        messages,
     }
 }
 
