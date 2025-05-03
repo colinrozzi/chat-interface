@@ -1,5 +1,5 @@
 name = "chat-interface"
-component_path = "/nix/store/47gza570v8cmyjl4jp77v2fgh60q14ly-chat-interface-0.1.0/lib/chat-interface.wasm"
+component_path = "/nix/store/ngyc7yrkl9n2mz0m6amyzafjgf19hcfl-chat-interface-0.1.0/lib/chat-interface.wasm"
 short_description = "An HTTP server actor with REST API and WebSocket support"
 
 [[handlers]]

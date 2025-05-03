@@ -200,6 +200,10 @@ function handleServerMessage(message) {
         case 'message':
             handleIncomingMessage(message);
             break;
+
+        case 'messages':
+            handleIncomingMessages(message);
+            break;
             
         case 'history':
             handleConversationHistory(message);
@@ -281,6 +285,34 @@ function handleIncomingMessage(message) {
         conversation.updated_at = Date.now();
         conversation.message_count = (conversation.message_count || 0) + 1;
         updateConversationList();
+    }
+}
+
+// Handle multiple incoming messages from the assistant
+function handleIncomingMessages(message) {
+    if (message.conversation_id === activeConversationId) {
+        // Add all messages to the UI
+        message.messages.forEach((msg, index) => {
+            // Only display the assistant messages
+            if (msg.role === 'assistant') {
+                addAssistantMessage(msg);
+            }
+        });
+    }
+    
+    // Update the conversation preview with the last message
+    const conversation = conversations.find(conv => conv.id === message.conversation_id);
+    if (conversation && message.messages.length > 0) {
+        // Find the last assistant message for preview
+        const assistantMessages = message.messages.filter(msg => msg.role === 'assistant');
+        if (assistantMessages.length > 0) {
+            const lastMessage = assistantMessages[assistantMessages.length - 1];
+            const messageText = extractTextFromMessage(lastMessage);
+            conversation.last_message_preview = messageText.substring(0, 50) + (messageText.length > 50 ? '...' : '');
+            conversation.updated_at = Date.now();
+            conversation.message_count = (conversation.message_count || 0) + assistantMessages.length;
+            updateConversationList();
+        }
     }
 }
 
