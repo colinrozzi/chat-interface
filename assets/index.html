@@ -9,10 +9,22 @@
 </head>
 
 <body>
+    <button id="sidebar-toggle" class="sidebar-toggle" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
     <div class="app-container">
         <div class="sidebar">
             <div class="header">
-                <h1>Claude Chat</h1>
+                <div class="header-top">
+                    <h1>Claude Chat</h1>
+                    <div class="theme-toggle-wrapper">
+                        <input type="checkbox" id="theme-toggle" class="theme-toggle-input">
+                        <label for="theme-toggle" class="theme-toggle-label">
+                            <span class="toggle-icon light">☀️</span>
+                            <span class="toggle-icon dark">🌙</span>
+                        </label>
+                    </div>
+                </div>
                 <button id="new-chat-btn" class="new-chat-button">New Chat</button>
             </div>
             <div class="conversation-list" id="conversation-list">
@@ -84,6 +96,7 @@
         </div>
     </div>
     <script src="bundle.js"></script>
+    <!-- The app.js will be loaded by bundle.js -->
 </body>
 
 </html>

@@ -22,6 +22,9 @@ function init() {
     connectWebSocket();
     setupEventListeners();
     initSettingsPanel();
+    initThemeToggle();
+    loadTheme();
+    setupMobileResponsiveness();
 }
 
 // Connect to WebSocket server
@@ -339,11 +342,47 @@ function addUserMessage(text) {
     addMessageToUI('user', text);
 }
 
+// Create a copy button for messages
+function createCopyButton() {
+    const button = document.createElement('button');
+    button.className = 'copy-button';
+    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    button.title = 'Copy to clipboard';
+    
+    button.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const messageElement = this.parentElement;
+        const textToCopy = messageElement.innerText.replace('Copy to clipboard', '').trim();
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            // Show success feedback
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+            }, 2000);
+            
+            showMessage('Copied to clipboard');
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+            showError('Failed to copy text');
+        });
+    });
+    
+    return button;
+}
+
 // Add an assistant message to the UI
 function addAssistantMessage(message) {
     // Create a message element
     const messageElement = document.createElement('div');
     messageElement.className = 'message assistant';
+    
+    // Create and add copy button
+    const copyButton = createCopyButton();
+    messageElement.appendChild(copyButton);
     
     // Handle each content block
     if (message.content && Array.isArray(message.content)) {
@@ -438,9 +477,31 @@ function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${role}`;
     
-    // Convert newlines to <br> tags
-    const formattedContent = content.replace(/\n/g, '<br>');
-    messageElement.innerHTML = formattedContent;
+    // Create and add copy button
+    const copyButton = createCopyButton();
+    messageElement.appendChild(copyButton);
+    
+    // Create a content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'message-content';
+    
+    // Process message content with markdown support
+    // For now, just do basic handling of code blocks and newlines
+    let processedContent = content;
+    
+    // Process code blocks with ```
+    processedContent = processedContent.replace(/```([\w]*)\n([\s\S]*?)```/g, function(match, language, code) {
+        return `<pre><code class="language-${language || 'plaintext'}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    });
+    
+    // Process inline code with `
+    processedContent = processedContent.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+    // Convert remaining newlines to <br> tags
+    processedContent = processedContent.replace(/\n/g, '<br>');
+    
+    contentWrapper.innerHTML = processedContent;
+    messageElement.appendChild(contentWrapper);
     
     messagesContainer.appendChild(messageElement);
     
@@ -711,5 +772,76 @@ function resetSettingsForm() {
     const titleInput = document.getElementById('title-input');
     if (titleInput) {
         titleInput.value = '';
+    }
+}
+
+// Set up mobile responsiveness
+function setupMobileResponsiveness() {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    // Function to check screen size and apply mobile view if needed
+    function checkScreenSize() {
+        if (window.innerWidth <= 768) {
+            // Show the sidebar toggle button
+            sidebarToggle.style.display = 'flex';
+            
+            // Hide sidebar by default on mobile
+            if (!sidebar.classList.contains('mobile-shown')) {
+                sidebar.classList.add('mobile-hidden');
+            }
+        } else {
+            // Hide the toggle button and always show sidebar on desktop
+            sidebarToggle.style.display = 'none';
+            sidebar.classList.remove('mobile-hidden');
+        }
+    }
+    
+    // Toggle sidebar visibility on mobile
+    sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('mobile-hidden');
+        sidebar.classList.toggle('mobile-shown');
+    });
+    
+    // Check on load and window resize
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    // When a conversation is selected on mobile, hide the sidebar automatically
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768 && e.target.closest('.conversation-item')) {
+            sidebar.classList.add('mobile-hidden');
+            sidebar.classList.remove('mobile-shown');
+        }
+    });
+}
+
+// Dark mode theme toggle
+function initThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) return;
+    
+    // Add event listener for the theme toggle
+    themeToggle.addEventListener('change', function() {
+        if (this.checked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        }
+    });
+}
+
+// Load the saved theme from localStorage
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const themeToggle = document.getElementById('theme-toggle');
+    
+    if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        if (themeToggle) {
+            themeToggle.checked = true;
+        }
     }
 }
