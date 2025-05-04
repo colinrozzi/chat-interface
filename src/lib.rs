@@ -26,7 +26,7 @@ use state::{
     register_conversation_actor, remove_connection, set_active_conversation, InterfaceState,
 };
 
-use anthropic_types::{Message, MessageContent};
+use genai_types::{Message, MessageContent};
 use sha1::{Digest, Sha1};
 
 struct Component;

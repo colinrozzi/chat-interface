@@ -1,4 +1,4 @@
-use anthropic_types::Message;
+use genai_types::Message;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
