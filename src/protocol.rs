@@ -134,11 +134,17 @@ pub struct CreateConversationMessage {
     pub settings: Option<HashMap<String, serde_json::Value>>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ModelConfig {
+    pub model: String,
+    pub provider: String,
+}
+
 /// Conversation settings
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConversationSettings {
     /// Model to use (e.g., "claude-3-7-sonnet-20250219")
-    pub model: String,
+    pub model: ModelConfig,
 
     /// Temperature setting (0.0 to 1.0)
     pub temperature: Option<f32>,
