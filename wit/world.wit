@@ -8,6 +8,7 @@ world chat-interface {
     import supervisor;
     import timing;
     import message-server-host;
+    import store;
 
     export message-server-client;
     export actor;

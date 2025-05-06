@@ -12,6 +12,7 @@ use crate::bindings::ntwk::theater::http_framework::{
 use crate::bindings::ntwk::theater::http_types::{HttpRequest, HttpResponse, MiddlewareResult};
 use crate::bindings::ntwk::theater::message_server_host::request;
 use crate::bindings::ntwk::theater::runtime::log;
+use crate::bindings::ntwk::theater::store;
 use crate::bindings::ntwk::theater::supervisor::spawn;
 use crate::bindings::ntwk::theater::timing::now;
 use crate::bindings::ntwk::theater::types::ActorError;
@@ -19,27 +20,50 @@ use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMess
 
 use protocol::{
     create_conversation_created_message, create_conversation_response, create_error_message,
-    create_messages_response, create_settings_response, create_success_response,
-    create_welcome_message, ChatStateRequest, ChatStateResponse, ClientMessage, ServerMessage,
+    create_messages_response, create_settings_response, create_success_response, ChatStateRequest,
+    ChatStateResponse, ClientMessage, ServerMessage,
 };
+use serde::{Deserialize, Serialize};
 use state::{
-    add_connection, get_active_conversation, get_actor_id_for_conversation, init_state,
-    register_conversation_actor, remove_connection, set_active_conversation, InterfaceState,
+    add_connection, get_actor_id_for_conversation, initialize_state, register_conversation_actor,
+    remove_connection, set_active_conversation, InterfaceState,
 };
 
-use genai_types::{Message, MessageContent};
+#[derive(Serialize, Deserialize, Debug)]
+struct InitState {
+    store_id: Option<String>,
+}
+
 use sha1::{Digest, Sha1};
 
 struct Component;
 
 impl Guest for Component {
-    fn init(_state: Option<Vec<u8>>, params: (String,)) -> Result<(Option<Vec<u8>>,), String> {
+    fn init(
+        init_state_bytes: Option<Vec<u8>>,
+        params: (String,),
+    ) -> Result<(Option<Vec<u8>>,), String> {
         log("Initializing chat-interface HTTP actor");
         let (param,) = params;
         log(&format!("Init parameter: {}", param));
 
-        // Initialize state
-        let interface_state = init_state();
+        let init_state = match init_state_bytes {
+            Some(bytes) => match serde_json::from_slice::<InitState>(&bytes) {
+                Ok(state) => state,
+                Err(e) => return Err(format!("Failed to parse init state: {}", e)),
+            },
+            None => {
+                log("No init state provided, using default");
+                InitState { store_id: None }
+            }
+        };
+
+        let store_id = match init_state.store_id {
+            Some(id) => id,
+            None => store::new().expect("Failed to create new store"),
+        };
+
+        let interface_state = initialize_state(&store_id);
 
         // Serialize state
         let state_bytes = match serde_json::to_vec(&interface_state) {
@@ -446,7 +470,8 @@ fn handle_client_message(
             let conversation_id = generate_conversation_id(content);
 
             // Start a new chat-state actor
-            let chat_state_actor_id = start_chat_state_actor(&conversation_id)?;
+            let chat_state_actor_id =
+                start_chat_state_actor(&conversation_id, &interface_state.store_id)?;
 
             log(&format!(
                 "Started chat-state actor for conversation {}: {}",
@@ -691,13 +716,14 @@ fn handle_client_message(
 }
 
 // Start a new chat-state actor for a conversation
-fn start_chat_state_actor(conversation_id: &str) -> Result<String, String> {
+fn start_chat_state_actor(conversation_id: &str, store_id: &str) -> Result<String, String> {
     // Chat-state actor manifest path
     let manifest_path = "/Users/colinrozzi/work/actor-registry/chat-state/manifest.toml";
 
     // Prepare initial state (serialized as JSON)
     let initial_state = serde_json::json!({
         "conversation_id": conversation_id,
+        "store_id": store_id,
     });
 
     // Spawn the actor

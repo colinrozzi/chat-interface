@@ -16,6 +16,9 @@ pub struct InterfaceState {
 
     /// Server configuration
     pub server_config: ServerConfig,
+
+    /// Store ID for the chat interface
+    pub store_id: String,
 }
 
 /// Information about a websocket connection
@@ -48,11 +51,12 @@ pub struct ServerConfig {
 }
 
 /// Initialize a new state with default values
-pub fn init_state() -> InterfaceState {
+pub fn initialize_state(store_id: &str) -> InterfaceState {
     InterfaceState {
         connections: HashMap::new(),
         conversation_actors: HashMap::new(),
         conversation_metadata: HashMap::new(),
+        store_id: store_id.to_string(),
         server_config: ServerConfig {
             port: 8080,
             host: "0.0.0.0".to_string(),

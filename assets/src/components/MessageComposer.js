@@ -41,6 +41,21 @@ export function initMessageComposer(inputElement, sendButtonElement) {
             return;
         }
         
+        // First, add the message to the UI immediately
+        // Create a message object in the same format as the server expects
+        const userMessage = {
+            role: 'user',
+            content: [
+                {
+                    type: 'text',
+                    text: message
+                }
+            ]
+        };
+        
+        // Add the message to the message store first so it persists
+        messageStore.addMessages(conversationId, [userMessage]);
+        
         // Set waiting state
         uiStore.setWaitingForResponse(true);
         

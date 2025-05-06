@@ -1,5 +1,5 @@
 name = "chat-interface"
-component_path = "/nix/store/m261kq882g6ibvljh8mybm60xb754m2g-chat-interface-0.1.0/lib/chat-interface.wasm"
+component_path = "/nix/store/hly7aj2x9dx74mdyz4mcj00fag0ir0pm-chat-interface-0.1.0/lib/chat-interface.wasm"
 short_description = "An HTTP server actor with REST API and WebSocket support"
 
 [[handlers]]
@@ -21,5 +21,10 @@ min_sleep_duration = 1
 
 [[handlers]]
 type = "supervisor"
+
+[handlers.config]
+
+[[handlers]]
+type = "store"
 
 [handlers.config]
