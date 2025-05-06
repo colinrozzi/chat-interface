@@ -414,13 +414,6 @@ fn handle_client_message(
     connection_id: u64,
     content: &str,
 ) -> Result<Vec<WebsocketMessage>, String> {
-    // Send welcome message for simple test messages
-    if content.trim() == "hello!" {
-        log("Received test hello message, sending welcome response");
-        let welcome_msg = create_welcome_message();
-        return Ok(vec![create_websocket_text_message(&welcome_msg)?]);
-    }
-
     // Parse client message
     log(&format!("Parsing client message: {}", content));
     let client_message: ClientMessage = match serde_json::from_str(content) {
@@ -536,6 +529,10 @@ fn handle_client_message(
             Ok(vec![create_websocket_text_message(&response)?])
         }
         ClientMessage::GetSettings { conversation_id } => {
+            log(&format!(
+                "Getting settings for conversation: {}",
+                conversation_id
+            ));
             // Get actor ID for this conversation
             let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
                 Some(id) => id,
@@ -549,15 +546,29 @@ fn handle_client_message(
                 }
             };
 
+            log("Actor ID found, forwarding request to chat-state actor");
+
             // Forward request to chat-state actor
             let chat_state_msg = ChatStateRequest::GetSettings;
             let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+            log(&format!(
+                "Received settings response for conversation {}: {:?}",
+                conversation_id, response
+            ));
             match response {
                 ChatStateResponse::Settings { settings } => {
+                    log(&format!(
+                        "Settings recieved for conversation {}",
+                        conversation_id
+                    ));
                     let response_msg = create_settings_response(&conversation_id, settings);
                     return Ok(vec![create_websocket_text_message(&response_msg)?]);
                 }
                 ChatStateResponse::Error { error } => {
+                    log(&format!(
+                        "Error from chat-state actor for conversation {}: {:?}",
+                        conversation_id, error
+                    ));
                     let error_msg = create_error_message(
                         &conversation_id,
                         &format!("Error from chat-state actor: {:?}", error),
@@ -566,6 +577,10 @@ fn handle_client_message(
                     return Ok(vec![create_websocket_text_message(&error_msg)?]);
                 }
                 _ => {
+                    log(&format!(
+                        "Unexpected response from chat-state actor for conversation {}: {:?}",
+                        conversation_id, response
+                    ));
                     let error_msg = create_error_message(
                         &conversation_id,
                         "Unexpected response from chat-state actor",

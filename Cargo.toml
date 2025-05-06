@@ -11,6 +11,7 @@ serde_json = "1.0"
 sha1 = "0.10.5"
 hex = "0.4.3"
 genai-types = "0.1"
+mcp-protocol = "0.2"
 
 [dependencies.wit-bindgen-rt]
 features = ["bitflags"]

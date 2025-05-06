@@ -29,6 +29,7 @@ version = "0.1.0"
 dependencies = [
  "genai-types",
  "hex",
+ "mcp-protocol",
  "serde",
  "serde_json",
  "sha1",

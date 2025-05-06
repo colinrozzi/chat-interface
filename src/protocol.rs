@@ -1,4 +1,5 @@
 use genai_types::Message;
+use mcp_protocol::tool::Tool;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -140,17 +141,16 @@ pub struct ModelConfig {
     pub provider: String,
 }
 
-/// Conversation settings
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConversationSettings {
     /// Model to use (e.g., "claude-3-7-sonnet-20250219")
-    pub model: ModelConfig,
+    pub model_config: ModelConfig,
 
     /// Temperature setting (0.0 to 1.0)
     pub temperature: Option<f32>,
 
     /// Maximum tokens to generate
-    pub max_tokens: Option<u32>,
+    pub max_tokens: u32,
 
     /// Any additional model parameters
     pub additional_params: Option<HashMap<String, serde_json::Value>>,
@@ -159,7 +159,23 @@ pub struct ConversationSettings {
     pub system_prompt: Option<String>,
 
     /// Title of the conversation
-    pub title: Option<String>,
+    pub title: String,
+
+    /// Mcp servers
+    pub mcp_servers: Vec<McpServer>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct McpConfig {
+    command: String,
+    args: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct McpServer {
+    pub actor_id: Option<String>,
+    pub config: McpConfig,
+    pub tools: Option<Vec<Tool>>,
 }
 
 /// Messages received by the chat-state actor
