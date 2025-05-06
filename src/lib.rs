@@ -712,6 +712,90 @@ fn handle_client_message(
                 }
             }
         }
+    },
+    
+    ClientMessage::GetMessageById { conversation_id, message_id } => {
+        // Get actor ID for this conversation
+        let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
+            Some(id) => id,
+            None => {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    "Conversation not found",
+                    "CONVERSATION_NOT_FOUND",
+                );
+                return Ok(vec![create_websocket_text_message(&error_msg)?]);
+            }
+        };
+
+        // Forward request to chat-state actor
+        let chat_state_msg = ChatStateRequest::GetMessage { message_id };
+        let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+
+        match response {
+            ChatStateResponse::ChatMessage { message } => {
+                let response_msg = create_message_by_id_response(&conversation_id, message);
+                Ok(vec![create_websocket_text_message(&response_msg)?])
+            },
+            ChatStateResponse::Error { error } => {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    &format!("Error retrieving message: {:?}", error),
+                    "MESSAGE_ERROR",
+                );
+                Ok(vec![create_websocket_text_message(&error_msg)?])
+            },
+            _ => {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    "Unexpected response when retrieving message",
+                    "INTERNAL_ERROR",
+                );
+                Ok(vec![create_websocket_text_message(&error_msg)?])
+            }
+        }
+    },
+    
+    ClientMessage::GetHeadId { conversation_id } => {
+        // Get actor ID for this conversation
+        let actor_id = match get_actor_id_for_conversation(interface_state, &conversation_id) {
+            Some(id) => id,
+            None => {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    "Conversation not found",
+                    "CONVERSATION_NOT_FOUND",
+                );
+                return Ok(vec![create_websocket_text_message(&error_msg)?]);
+            }
+        };
+
+        // Forward request to chat-state actor
+        let chat_state_msg = ChatStateRequest::GetHead;
+        let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
+
+        match response {
+            ChatStateResponse::Head { head } => {
+                let response_msg = create_head_id_response(&conversation_id, &head);
+                Ok(vec![create_websocket_text_message(&response_msg)?])
+            },
+            ChatStateResponse::Error { error } => {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    &format!("Error retrieving head: {:?}", error),
+                    "HEAD_ERROR",
+                );
+                Ok(vec![create_websocket_text_message(&error_msg)?])
+            },
+            _ => {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    "Unexpected response when retrieving head",
+                    "INTERNAL_ERROR",
+                );
+                Ok(vec![create_websocket_text_message(&error_msg)?])
+            }
+        }
     }
 }
 

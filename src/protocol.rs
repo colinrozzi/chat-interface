@@ -35,9 +35,30 @@ pub enum ClientMessage {
     /// Get conversation settings
     #[serde(rename = "get_settings")]
     GetSettings { conversation_id: String },
+    
+    /// Get message by ID for chain-based navigation
+    #[serde(rename = "get_message_by_id")]
+    GetMessageById {
+        conversation_id: String,
+        message_id: String,
+    },
+
+    /// Get the current head ID of the conversation chain
+    #[serde(rename = "get_head_id")]
+    GetHeadId {
+        conversation_id: String,
+    },
 }
 
 /// Messages sent from server to clients
+/// Chat Message from chat-state actor (includes chain information)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChatMessage {
+    pub id: Option<String>,
+    pub parent_id: Option<String>,
+    pub message: Message,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum ServerMessage {
@@ -98,6 +119,20 @@ pub enum ServerMessage {
 
     #[serde(rename = "success")]
     Success,
+
+    /// Message by ID response (for chain-based navigation)
+    #[serde(rename = "message_by_id")]
+    MessageById {
+        conversation_id: String,
+        message: ChatMessage,
+    },
+
+    /// Head ID response (for chain-based navigation)
+    #[serde(rename = "head_id")]
+    HeadId {
+        conversation_id: String,
+        head_id: String,
+    },
 }
 
 /// Metadata about a conversation for UI display
@@ -212,13 +247,19 @@ pub enum ChatStateResponse {
     Completion { messages: Vec<Message> },
 
     #[serde(rename = "history")]
-    History { messages: Vec<Message> },
+    History { messages: Vec<ChatMessage> },
 
     #[serde(rename = "settings")]
     Settings { settings: ConversationSettings },
 
     #[serde(rename = "error")]
     Error { error: ErrorInfo },
+    
+    #[serde(rename = "head")]
+    Head { head: String },
+    
+    #[serde(rename = "chat_message")]
+    ChatMessage { message: ChatMessage },
 }
 
 /// Error information
@@ -303,5 +344,21 @@ pub fn create_settings_updated_response(conversation_id: &str) -> ServerMessage 
     ServerMessage::SettingsUpdated {
         conversation_id: conversation_id.to_string(),
         message: "Settings updated successfully".to_string(),
+    }
+}
+
+/// Create a message by ID response
+pub fn create_message_by_id_response(conversation_id: &str, message: ChatMessage) -> ServerMessage {
+    ServerMessage::MessageById {
+        conversation_id: conversation_id.to_string(),
+        message,
+    }
+}
+
+/// Create a head ID response
+pub fn create_head_id_response(conversation_id: &str, head_id: &str) -> ServerMessage {
+    ServerMessage::HeadId {
+        conversation_id: conversation_id.to_string(),
+        head_id: head_id.to_string(),
     }
 }
