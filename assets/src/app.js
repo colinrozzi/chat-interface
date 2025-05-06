@@ -221,8 +221,20 @@ function setupMessageHandlers() {
     // Conversation history
     registerMessageHandler('conversation', (message) => {
         console.log('Received conversation history:', message.conversation_id);
+        console.log('Conversation history messages:', message.messages);
         
         const conversationId = message.conversation_id;
+        
+        // Examine messages to debug user message display issues
+        if (message.messages && Array.isArray(message.messages)) {
+            message.messages.forEach((msg, index) => {
+                console.log(`Message ${index} details:`, {
+                    role: msg.role,
+                    contentType: msg.content ? (Array.isArray(msg.content) ? 'array' : typeof msg.content) : 'undefined',
+                    contentLength: msg.content && Array.isArray(msg.content) ? msg.content.length : 'N/A'
+                });
+            });
+        }
         
         // Set messages in store
         messageStore.setMessages(conversationId, message.messages);

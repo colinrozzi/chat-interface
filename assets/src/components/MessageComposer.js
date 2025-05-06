@@ -34,7 +34,10 @@ export function initMessageComposer(inputElement, sendButtonElement) {
         const message = messageInput.value.trim();
         const conversationId = conversationStore.getActiveConversation();
         
+        console.log('sendMessage called with:', { message, conversationId });
+        
         if (!message || !conversationId || uiStore.isWaitingForResponse()) {
+            console.log('Cannot send message - empty message, no active conversation, or already waiting for response');
             return;
         }
         
@@ -43,10 +46,14 @@ export function initMessageComposer(inputElement, sendButtonElement) {
         
         // Create and send message request
         const request = createSendMessageRequest(conversationId, message);
+        console.log('Created message request:', request);
+        
         const success = sendAction(request.action, {
             conversation_id: request.conversation_id,
             message: request.message
         });
+        
+        console.log('Message send result:', success ? 'success' : 'failed');
         
         // Clear the input
         messageInput.value = '';

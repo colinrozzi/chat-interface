@@ -54,10 +54,18 @@ export function initChatWindow(containerElement) {
     
     /**
      * Add a user message to the UI
-     * @param {string} text - The message text
+     * @param {string|Object} message - The message text or object
      */
-    function addUserMessage(text) {
-        addMessageToUI('user', text);
+    function addUserMessage(message) {
+        console.log('addUserMessage called with:', message);
+        
+        // Check if the message is a string or an object
+        const textContent = typeof message === 'string' 
+            ? message 
+            : extractTextFromMessage(message);
+        
+        console.log('Processed user message text for rendering:', textContent);
+        addMessageToUI('user', textContent);
     }
     
     /**
@@ -195,10 +203,14 @@ export function initChatWindow(containerElement) {
      * @param {string} conversationId - The conversation ID
      */
     function renderMessages(messages, conversationId) {
+        console.log('renderMessages called with:', { messagesCount: messages.length, conversationId });
+        
         const activeId = conversationStore.getActiveConversation();
+        console.log('Active conversation ID:', activeId);
         
         // Only render if this is the active conversation
         if (conversationId !== activeId) {
+            console.log('Skipping rendering - not the active conversation');
             return;
         }
         
@@ -206,10 +218,15 @@ export function initChatWindow(containerElement) {
         clearMessages();
         
         // Add each message to the UI
-        messages.forEach(message => {
+        messages.forEach((message, index) => {
+            console.log(`Processing message ${index}:`, { role: message.role, content: message.content });
+            
             if (message.role === 'user') {
-                addUserMessage(extractTextFromMessage(message));
+                console.log('Rendering user message');
+                // Pass the whole message object to let addUserMessage handle extraction
+                addUserMessage(message);
             } else if (message.role === 'assistant') {
+                console.log('Rendering assistant message');
                 addAssistantMessage(message);
             }
             // We don't display system messages for now

@@ -86,15 +86,21 @@ export function createUpdateSettingsRequest(conversationId, settings) {
  * @returns {string} The concatenated text content
  */
 export function extractTextFromMessage(message) {
+    console.log('extractTextFromMessage called with:', message);
+    
     if (!message || !message.content || !Array.isArray(message.content)) {
+        console.log('Message has invalid format, returning empty string');
         return '';
     }
     
     // Concatenate all text content parts
-    return message.content
+    const extractedText = message.content
         .filter(content => content.type === 'text')
         .map(content => content.text)
         .join('\n');
+    
+    console.log('Extracted text from message:', extractedText);
+    return extractedText;
 }
 
 /**
