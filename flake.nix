@@ -70,6 +70,9 @@
             # Development tools
             rustfmt
             clippy
+            # Frontend build tools
+            esbuild
+            nodejs
           ];
 
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
@@ -91,6 +94,8 @@
             cargo-component
             cacert
             rustup
+            esbuild
+            nodejs
           ];
           
           buildInputs = with pkgs; [ 
