@@ -5,6 +5,7 @@ mod state;
 use crate::bindings::exports::ntwk::theater::actor::Guest;
 use crate::bindings::exports::ntwk::theater::http_handlers::Guest as HttpHandlersGuest;
 use crate::bindings::exports::ntwk::theater::message_server_client::Guest as MessageServerClient;
+use crate::bindings::exports::ntwk::theater::supervisor_handlers::Guest as SupervisorHandlersGuest;
 use crate::bindings::ntwk::theater::http_framework::{
     add_route, create_server, enable_websocket, register_handler, start_server, ServerConfig,
 };
@@ -13,7 +14,7 @@ use crate::bindings::ntwk::theater::message_server_host::request;
 use crate::bindings::ntwk::theater::runtime::log;
 use crate::bindings::ntwk::theater::supervisor::spawn;
 use crate::bindings::ntwk::theater::timing::now;
-use crate::bindings::ntwk::theater::types::State;
+use crate::bindings::ntwk::theater::types::ActorError;
 use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMessage};
 
 use protocol::{
@@ -32,7 +33,7 @@ use sha1::{Digest, Sha1};
 struct Component;
 
 impl Guest for Component {
-    fn init(_state: State, params: (String,)) -> Result<(State,), String> {
+    fn init(_state: Option<Vec<u8>>, params: (String,)) -> Result<(Option<Vec<u8>>,), String> {
         log("Initializing chat-interface HTTP actor");
         let (param,) = params;
         log(&format!("Init parameter: {}", param));
@@ -404,6 +405,18 @@ impl MessageServerClient for Component {
     {
         log("Received channel message");
         log(&format!("Channel message: {:?}", params));
+        Ok((state,))
+    }
+}
+
+impl SupervisorHandlersGuest for Component {
+    fn handle_child_error(
+        state: Option<Vec<u8>>,
+        params: (String, ActorError),
+    ) -> Result<(Option<Vec<u8>>,), String> {
+        log("Handling child error");
+        let (child_id, error) = params;
+        log(&format!("Child ID: {}, Error: {:?}", child_id, error));
         Ok((state,))
     }
 }
