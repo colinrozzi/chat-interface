@@ -4,8 +4,9 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "esbuild src/index.js --bundle --outfile=dist/bundle.js --format=esm",
-		"watch": "esbuild src/index.js --bundle --outfile=dist/bundle.js --format=esm --watch"
+		"build": "esbuild src/index.js --bundle --minify --sourcemap --outfile=dist/bundle.js --target=es2020 --format=esm --platform=browser",
+		"watch": "esbuild src/index.js --bundle --sourcemap --outfile=dist/bundle.js --target=es2020 --format=esm --platform=browser --watch",
+		"dev": "esbuild src/index.js --bundle --sourcemap --outfile=dist/bundle.js --target=es2020 --format=esm --platform=browser --servedir=. --serve=8888"
 	},
 	"dependencies": {},
 	"devDependencies": {
