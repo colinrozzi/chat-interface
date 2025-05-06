@@ -141,7 +141,7 @@ impl HttpHandlersGuest for Component {
             }
             "/bundle.js" => {
                 // Serve JavaScript file
-                let js = include_str!("../assets/app.js");
+                let js = include_str!("../assets/dist/bundle.js");
                 HttpResponse {
                     status: 200,
                     headers: vec![(
