@@ -103,6 +103,20 @@
             export XDG_CACHE_HOME=$TMPDIR/cache
             export CARGO_COMPONENT_CACHE_DIR=$TMPDIR/cargo-component-cache
             mkdir -p $CARGO_HOME $XDG_CACHE_HOME $CARGO_COMPONENT_CACHE_DIR
+
+            # Create dist directory
+            mkdir -p assets/dist
+            
+            # Bundle the JavaScript with esbuild
+            echo "Bundling JavaScript with esbuild..."
+            esbuild assets/src/index.js \
+              --bundle \
+              --minify \
+              --sourcemap \
+              --outfile=assets/dist/bundle.js \
+              --target=es2020 \
+              --format=esm \
+              --platform=browser
             
             # Ensure SSL certificates are available
             export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
