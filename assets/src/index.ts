@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     websocketManager.connect();
 
     // Initialize UI event listeners
-    uiManager.setupEventListeners((action, data) => {
+    const eventCallback: UIEventCallback = (action, data) => {
         switch (action) {
             case 'new_conversation':
                 websocketManager.sendMessage({
@@ -97,7 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 break;
         }
-    } as UIEventCallback);
+    };
+    
+    uiManager.setupEventListeners(eventCallback);
 
     // Expose key components to window for debugging
     (window as any).chatApp = {
