@@ -167,5 +167,47 @@
           # No longer need network access during build
           __noChroot = false;
         };
+          checks.default = pkgs.stdenv.mkDerivation {
+          name = "chat-interface-checks";
+          src = ./.;
+
+          nativeBuildInputs = with pkgs; [
+            rustToolchain
+            cargo-component
+            pkg-config
+            openssl
+            nodejs
+            nodePackages.typescript
+            esbuild
+            clippy
+            rustfmt
+          ];
+
+          buildPhase = ''
+            export HOME=$TMPDIR
+            export CARGO_HOME=$TMPDIR/cargo
+            export XDG_CACHE_HOME=$TMPDIR/cache
+
+            # Ensure SSL certificates are available
+            export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+            export NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+
+            echo "Running cargo check..."
+            cargo check --target wasm32-unknown-unknown
+
+            echo "Running clippy..."
+            cargo clippy --all-targets -- -D warnings
+
+            echo "Checking TypeScript..."
+            cd assets
+            npm install --no-audit --no-fund --loglevel=error
+            npx tsc --noEmit
+            cd ..
+          '';
+
+          dontInstall = true;
+        };
+
       });
+
 }
