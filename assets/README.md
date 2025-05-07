@@ -1,93 +1,115 @@
-# Chat Interface Frontend
+# Claude Chat Frontend
 
-This directory contains the frontend code for the Claude Chat Interface.
+This directory contains the frontend code for the Claude Chat application, which communicates with the chat-interface Theater actor via WebSockets.
 
-## Directory Structure
+## Structure
 
-The frontend code is organized using a modular structure:
+The frontend is organized into several modular JavaScript files:
 
-```
-src/
-├── app.js              # Main application initialization and setup
-├── index.js            # Entry point
-├── components/         # UI components
-│   ├── ChatWindow.js   # Displays chat messages
-│   ├── ConversationList.js  # Manages conversation history list
-│   ├── MessageComposer.js   # Message input and sending
-│   └── Settings.js     # Settings panel
-├── services/           # Core services
-│   ├── websocket.js    # WebSocket connection management
-│   └── messageProtocol.js   # Message formatting and parsing
-├── store/              # State management
-│   ├── index.js        # Central store initialization
-│   ├── conversations.js  # Conversation state
-│   ├── messages.js     # Message state
-│   ├── settings.js     # Settings state
-│   └── ui.js           # UI state
-└── utils/              # Utility functions
-    ├── api.js          # HTTP API client
-    ├── formatting.js   # Text and date formatting
-    └── storage.js      # LocalStorage interaction
-```
+- `index.js` - The main entry point that initializes the application
+- `state.js` - Manages application state
+- `ui.js` - Manages UI interactions and DOM updates
+- `websocket.js` - Handles WebSocket communication with the backend
+- `message-handler.js` - Processes incoming messages from the backend
 
 ## Build Process
 
-The frontend build process uses esbuild to bundle the JavaScript code:
+The frontend is built using esbuild, which bundles the JavaScript files into `dist/bundle.js`. This process is automatically handled in the Nix flake.
+
+To manually bundle the JavaScript files:
 
 ```bash
-esbuild src/index.js \
-  --bundle \
-  --minify \
-  --sourcemap \
-  --outfile=dist/bundle.js \
-  --target=es2020 \
-  --format=esm \
-  --platform=browser
+esbuild assets/src/index.js --bundle --minify --sourcemap --outfile=assets/dist/bundle.js
 ```
 
-## Architecture Overview
+## Development
 
-- **Modular Design**: The codebase is split into focused components, each with a single responsibility
-- **Store-Based State Management**: State is managed in stores (conversations, messages, settings, UI)
-- **Event-Based Communication**: Components communicate via event handlers and callbacks
-- **WebSocket Protocol**: Real-time communication with the backend
+To modify the frontend:
 
-## Key Features
+1. Edit the files in the `src` directory
+2. Build the project using the provided Nix flake:
 
-- Real-time messaging with Claude
-- Conversation history management
-- Settings customization for each conversation
-- Responsive design for desktop and mobile devices
-- Dark mode support
-- Markdown message formatting
+```bash
+nix build
+```
 
-## Adding a New Component
+Or run in development mode:
 
-To add a new component:
+```bash
+nix develop
+```
 
-1. Create a new file in the appropriate directory
-2. Export an initialization function that accepts DOM elements
-3. Connect to the necessary stores
-4. Register event handlers
-5. Import and initialize the component in app.js
+## Communication Protocol
 
-## State Management
+The frontend communicates with the backend using WebSockets. The protocol is defined in the `protocol.rs` file in the actor's source code. Here's a summary of the key message types:
 
-The application uses a simple store pattern for state management:
+### Client → Server Messages
 
-- Each store manages a specific domain (conversations, messages, etc.)
-- Components register callbacks for state changes
-- Stores notify registered components when state changes
-- Central store coordinates cross-domain state updates
+- `new_conversation` - Create a new conversation
+- `send_message` - Send a message to a conversation
+- `list_conversations` - Get a list of all conversations
+- `get_history` - Get the message history for a conversation
+- `get_settings` - Get the settings for a conversation
+- `update_settings` - Update conversation settings
 
-## WebSocket Protocol
+### Server → Client Messages
 
-The WebSocket communication follows the protocol defined in the backend's `protocol.rs` file, with message types including:
+- `conversation_created` - Confirmation of new conversation creation
+- `conversation_list` - List of available conversations
+- `messages` - Updated messages for a conversation
+- `conversation` - Full conversation history
+- `settings` - Conversation settings
+- `error` - Error messages from the server
 
-- `new_conversation`: Create a new conversation
-- `send_message`: Send a message to Claude
-- `list_conversations`: Get the list of conversations
-- `get_history`: Get message history for a conversation
-- `get_settings`/`update_settings`: Get or update conversation settings
+## Architecture
 
-For more details on the protocol, see the backend's `protocol.rs` file.
+The frontend follows a modular architecture:
+
+1. **State Management**:
+   - The `StateManager` class maintains the application state
+   - Includes conversations, messages, settings, and connection status
+
+2. **UI Management**:
+   - The `UIManager` class handles DOM interactions
+   - Updates UI based on state changes
+   - Dispatches user actions to appropriate handlers
+
+3. **WebSocket Communication**:
+   - The `WebSocketManager` class maintains the WebSocket connection
+   - Handles connection lifecycle (connect, disconnect, reconnect)
+   - Serializes and sends messages to the backend
+
+4. **Message Handling**:
+   - The `MessageHandler` class processes incoming server messages
+   - Updates state based on message content
+   - Triggers UI updates as needed
+
+## Styling
+
+Styles are defined in `styles.css` and follow these conventions:
+
+- CSS custom properties for theming
+- Flexbox-based layout
+- Mobile-responsive design with breakpoints
+- BEM-inspired class naming convention
+
+## Browser Compatibility
+
+The frontend is designed to work with modern browsers that support:
+
+- ES6+ JavaScript
+- WebSocket API
+- Flexbox layout
+- CSS custom properties
+
+## Future Improvements
+
+Potential enhancements for the frontend:
+
+- Add proper markdown rendering for messages
+- Implement conversation search functionality
+- Add support for file uploads and attachments
+- Implement more advanced UI components (tabs, drawers, etc.)
+- Add keyboard shortcuts for common actions
+- Implement a service worker for offline capability
+- Add analytics and telemetry
