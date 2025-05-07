@@ -73,6 +73,8 @@
             # Frontend build tools
             esbuild
             nodejs
+            # Added for TypeScript
+            nodePackages.typescript
           ];
 
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
@@ -96,6 +98,7 @@
             rustup
             esbuild
             nodejs
+            nodePackages.typescript  # Added TypeScript
           ];
           
           buildInputs = with pkgs; [ 
@@ -104,6 +107,7 @@
 
           buildPhase = ''
             # Create cache directories
+            export HOME=$TMPDIR
             export CARGO_HOME=$TMPDIR/cargo
             export XDG_CACHE_HOME=$TMPDIR/cache
             export CARGO_COMPONENT_CACHE_DIR=$TMPDIR/cargo-component-cache
@@ -112,16 +116,28 @@
             # Create dist directory
             mkdir -p assets/dist
             
-            # Bundle the JavaScript with esbuild
-            echo "Bundling JavaScript with esbuild..."
-            esbuild assets/src/index.js \
+            # Install frontend dependencies including TypeScript
+            cd assets
+            echo "Installing npm dependencies..."
+            npm install --no-audit --no-fund --loglevel=error
+            
+            # Run TypeScript type checking
+            echo "Running TypeScript type checking..."
+            npx tsc --noEmit
+            
+            # Bundle the TypeScript with esbuild
+            echo "Bundling TypeScript with esbuild..."
+            npx esbuild src/index.ts \
               --bundle \
               --minify \
               --sourcemap \
-              --outfile=assets/dist/bundle.js \
+              --outfile=dist/bundle.js \
               --target=es2020 \
               --format=esm \
               --platform=browser
+            
+            # Return to main directory
+            cd ..
             
             # Ensure SSL certificates are available
             export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
@@ -140,6 +156,12 @@
             echo "LS: $(ls ./target/wasm32-unknown-unknown/release)"
             SOURCE_FILE="./target/wasm32-unknown-unknown/release/$(echo chat-interface | tr '-' '_').wasm"
             cp $SOURCE_FILE $out/lib/chat-interface.wasm
+            
+            # Copy frontend assets to output
+            mkdir -p $out/assets
+            cp -r assets/dist $out/assets/
+            cp assets/index.html $out/assets/
+            cp assets/styles.css $out/assets/
           '';
           
           # No longer need network access during build
