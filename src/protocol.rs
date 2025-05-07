@@ -231,6 +231,10 @@ pub enum ChatStateRequest {
     Subscribe { sub_id: String },
     #[serde(rename = "unsubscribe")]
     Unsubscribe { sub_id: String },
+    #[serde(rename = "get_head")]
+    GetHead,
+    #[serde(rename = "get_message")]
+    GetMessage { message_id: String },
 }
 
 /// Data associated with the response

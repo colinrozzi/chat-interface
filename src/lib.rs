@@ -15,6 +15,7 @@ use crate::bindings::ntwk::theater::runtime::log;
 use crate::bindings::ntwk::theater::store;
 use crate::bindings::ntwk::theater::supervisor::spawn;
 use crate::bindings::ntwk::theater::timing::now;
+use genai_types::Message;
 use crate::bindings::ntwk::theater::types::ActorError;
 use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMessage};
 
@@ -497,7 +498,7 @@ fn handle_client_message(
 
             // Send confirmation to client
             let response_msg = create_conversation_created_message(&conversation_id);
-            Ok(vec![create_websocket_text_message(&response_msg)?])
+            return Ok(vec![create_websocket_text_message(&response_msg)?])
         }
         ClientMessage::SendMessage {
             conversation_id,
@@ -527,10 +528,48 @@ fn handle_client_message(
                         forward_to_chat_state(&actor_id, &ChatStateRequest::GenerateCompletion)?;
 
                     match completion_response {
+                        // In the new chain-driven architecture, GenerateCompletion returns a Head response
+                        // with the ID of the latest message in the chain
+                        ChatStateResponse::Head { head: _ } => {
+                            // Now request the full updated conversation history
+                            let history_response = forward_to_chat_state(
+                                &actor_id, 
+                                &ChatStateRequest::GetHistory
+                            )?;
+                            
+                            match history_response {
+                                ChatStateResponse::History { messages } => {
+                                    // Convert ChatMessage objects to Message objects for client compatibility
+                                    let client_messages: Vec<Message> = messages.iter()
+                                        .map(|m| m.message.clone())
+                                        .collect();
+                                    
+                                    let response_msg = create_messages_response(&conversation_id, client_messages);
+                                    return Ok(vec![create_websocket_text_message(&response_msg)?]);
+                                },
+                                ChatStateResponse::Error { error } => {
+                                    let error_msg = create_error_message(
+                                        &conversation_id,
+                                        &format!("Error from chat-state actor: {:?}", error),
+                                        "CHAT_STATE_ERROR",
+                                    );
+                                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                                },
+                                _ => {
+                                    let error_msg = create_error_message(
+                                        &conversation_id,
+                                        "Unexpected response when retrieving message history",
+                                        "INTERNAL_ERROR",
+                                    );
+                                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                                }
+                            }
+                        },
+                        // Handle the old completion response format for backwards compatibility
                         ChatStateResponse::Completion { messages } => {
                             let response_msg = create_messages_response(&conversation_id, messages);
                             return Ok(vec![create_websocket_text_message(&response_msg)?]);
-                        }
+                        },
                         ChatStateResponse::Error { error } => {
                             let error_msg = create_error_message(
                                 &conversation_id,
@@ -538,7 +577,7 @@ fn handle_client_message(
                                 "CHAT_STATE_ERROR",
                             );
                             return Ok(vec![create_websocket_text_message(&error_msg)?]);
-                        }
+                        },
                         _ => {
                             let error_msg = create_error_message(
                                 &conversation_id,
@@ -564,7 +603,7 @@ fn handle_client_message(
                 conversations: interface_state.conversation_metadata.clone(),
             };
 
-            Ok(vec![create_websocket_text_message(&response)?])
+            return Ok(vec![create_websocket_text_message(&response)?])
         }
         ClientMessage::GetSettings { conversation_id } => {
             log(&format!(
@@ -685,15 +724,48 @@ fn handle_client_message(
                 }
             };
 
-            // Forward request to chat-state actor
-            let chat_state_msg = ChatStateRequest::GetHistory;
-            let response = forward_to_chat_state(&actor_id, &chat_state_msg)?;
-
-            match response {
-                ChatStateResponse::History { messages } => {
-                    let response_msg = create_conversation_response(&conversation_id, messages);
-                    return Ok(vec![create_websocket_text_message(&response_msg)?]);
-                }
+            // Request the head ID first to confirm we have a valid conversation
+            let head_response = forward_to_chat_state(
+                &actor_id, 
+                &ChatStateRequest::GetHead
+            )?;
+            
+            match head_response {
+                ChatStateResponse::Head { head: _ } => {
+                    // Now request the full message history
+                    let history_response = forward_to_chat_state(
+                        &actor_id, 
+                        &ChatStateRequest::GetHistory
+                    )?;
+                    
+                    match history_response {
+                        ChatStateResponse::History { messages } => {
+                            // Convert ChatMessage objects to Message objects for client compatibility
+                            let client_messages: Vec<Message> = messages.iter()
+                                .map(|m| m.message.clone())
+                                .collect();
+                                
+                            let response_msg = create_conversation_response(&conversation_id, client_messages);
+                            return Ok(vec![create_websocket_text_message(&response_msg)?]);
+                        },
+                        ChatStateResponse::Error { error } => {
+                            let error_msg = create_error_message(
+                                &conversation_id,
+                                &format!("Error from chat-state actor: {:?}", error),
+                                "CHAT_STATE_ERROR",
+                            );
+                            return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                        },
+                        _ => {
+                            let error_msg = create_error_message(
+                                &conversation_id,
+                                "Unexpected response when retrieving message history",
+                                "INTERNAL_ERROR",
+                            );
+                            return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                        }
+                    }
+                },
                 ChatStateResponse::Error { error } => {
                     let error_msg = create_error_message(
                         &conversation_id,
@@ -701,7 +773,7 @@ fn handle_client_message(
                         "CHAT_STATE_ERROR",
                     );
                     return Ok(vec![create_websocket_text_message(&error_msg)?]);
-                }
+                },
                 _ => {
                     let error_msg = create_error_message(
                         &conversation_id,
@@ -712,7 +784,7 @@ fn handle_client_message(
                 }
             }
         }
-    },
+    }
     
     ClientMessage::GetMessageById { conversation_id, message_id } => {
         // Get actor ID for this conversation
@@ -735,7 +807,7 @@ fn handle_client_message(
         match response {
             ChatStateResponse::ChatMessage { message } => {
                 let response_msg = create_message_by_id_response(&conversation_id, message);
-                Ok(vec![create_websocket_text_message(&response_msg)?])
+                return Ok(vec![create_websocket_text_message(&response_msg)?])
             },
             ChatStateResponse::Error { error } => {
                 let error_msg = create_error_message(
@@ -743,7 +815,7 @@ fn handle_client_message(
                     &format!("Error retrieving message: {:?}", error),
                     "MESSAGE_ERROR",
                 );
-                Ok(vec![create_websocket_text_message(&error_msg)?])
+                return Ok(vec![create_websocket_text_message(&error_msg)?])
             },
             _ => {
                 let error_msg = create_error_message(
@@ -751,7 +823,7 @@ fn handle_client_message(
                     "Unexpected response when retrieving message",
                     "INTERNAL_ERROR",
                 );
-                Ok(vec![create_websocket_text_message(&error_msg)?])
+                return Ok(vec![create_websocket_text_message(&error_msg)?])
             }
         }
     },
@@ -777,7 +849,7 @@ fn handle_client_message(
         match response {
             ChatStateResponse::Head { head } => {
                 let response_msg = create_head_id_response(&conversation_id, &head);
-                Ok(vec![create_websocket_text_message(&response_msg)?])
+                return Ok(vec![create_websocket_text_message(&response_msg)?])
             },
             ChatStateResponse::Error { error } => {
                 let error_msg = create_error_message(
@@ -785,7 +857,7 @@ fn handle_client_message(
                     &format!("Error retrieving head: {:?}", error),
                     "HEAD_ERROR",
                 );
-                Ok(vec![create_websocket_text_message(&error_msg)?])
+                return Ok(vec![create_websocket_text_message(&error_msg)?])
             },
             _ => {
                 let error_msg = create_error_message(
@@ -793,7 +865,7 @@ fn handle_client_message(
                     "Unexpected response when retrieving head",
                     "INTERNAL_ERROR",
                 );
-                Ok(vec![create_websocket_text_message(&error_msg)?])
+                return Ok(vec![create_websocket_text_message(&error_msg)?])
             }
         }
     }
