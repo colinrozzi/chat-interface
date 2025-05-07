@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude Chat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="app">
         <aside class="sidebar">
@@ -22,7 +24,7 @@
                 </ul>
             </div>
         </aside>
-        
+
         <main class="main-content">
             <div class="chat-container" id="chat-container">
                 <div class="welcome-screen" id="welcome-screen">
@@ -32,30 +34,39 @@
                         <button id="welcome-new-chat-btn" class="btn primary">Start New Conversation</button>
                     </div>
                 </div>
-                
+
                 <div id="conversation-view" class="conversation-view hidden">
                     <div class="conversation-header">
                         <h2 id="conversation-title">Conversation</h2>
                         <div class="conversation-actions">
                             <button id="settings-btn" class="btn icon-btn" title="Settings">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-settings">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path
+                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                    </path>
+                                </svg>
                             </button>
                         </div>
                     </div>
-                    
+
                     <div id="messages-container" class="messages-container">
                         <!-- Messages will be populated here -->
                     </div>
-                    
+
                     <div class="message-input-container">
                         <form id="message-form" class="message-form">
-                            <textarea 
-                                id="message-input" 
-                                class="message-input" 
-                                placeholder="Type your message..." 
+                            <textarea id="message-input" class="message-input" placeholder="Type your message..."
                                 rows="1"></textarea>
                             <button type="submit" class="btn send-btn" id="send-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-send">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
                             </button>
                         </form>
                     </div>
@@ -63,14 +74,19 @@
             </div>
         </main>
     </div>
-    
+
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Conversation Settings</h3>
                 <button id="close-settings-btn" class="btn icon-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="feather feather-x">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -83,40 +99,25 @@
                             <option value="claude-3-opus-20240229">Claude 3 Opus</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="temperature-input">Temperature</label>
-                        <input 
-                            type="range" 
-                            id="temperature-input" 
-                            name="temperature" 
-                            min="0" 
-                            max="1" 
-                            step="0.1" 
+                        <input type="range" id="temperature-input" name="temperature" min="0" max="1" step="0.1"
                             value="0.7">
                         <div class="range-value" id="temperature-value">0.7</div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="max-tokens-input">Max Tokens</label>
-                        <input 
-                            type="number" 
-                            id="max-tokens-input" 
-                            name="max_tokens" 
-                            min="100" 
-                            max="4096" 
-                            value="1024">
+                        <input type="number" id="max-tokens-input" name="max_tokens" min="100" max="4096" value="1024">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="system-prompt-input">System Prompt</label>
-                        <textarea 
-                            id="system-prompt-input" 
-                            name="system_prompt" 
-                            rows="4"
+                        <textarea id="system-prompt-input" name="system_prompt" rows="4"
                             placeholder="You are Claude, a helpful AI assistant..."></textarea>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" class="btn primary" id="save-settings-btn">Save Settings</button>
                     </div>
@@ -124,7 +125,8 @@
             </div>
         </div>
     </div>
-    
-    <script src="dist/bundle.js"></script>
+
+    <script src="bundle.js"></script>
 </body>
+
 </html>
