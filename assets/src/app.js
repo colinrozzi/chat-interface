@@ -7,6 +7,7 @@ import { initMessageComposer } from './components/MessageComposer.js';
 import { initSettings } from './components/Settings.js';
 import { conversationStore } from './store/conversations.js';
 import { messageStore } from './store/messages.js';
+import { settingsStore } from './store/settings.js';
 import { uiStore } from './store/ui.js';
 import { extractTextFromMessage } from './services/messageProtocol.js';
 
