@@ -54,6 +54,9 @@
           doCheck = false;
         };
 
+        toml = pkgs.lib.importTOML ./Cargo.toml;
+        crateName = toml.package.name;
+
       in
       {
         devShells.default = pkgs.mkShell {
@@ -106,6 +109,7 @@
           ];
 
           buildPhase = ''
+            echo "Building ${crateName}..."
             # Create cache directories
             export HOME=$TMPDIR
             export CARGO_HOME=$TMPDIR/cargo
@@ -114,7 +118,7 @@
             mkdir -p $CARGO_HOME $XDG_CACHE_HOME $CARGO_COMPONENT_CACHE_DIR
 
             # Create dist directory
-            mkdir -p assets/dist
+            mkdir -p assets/dist build
             
             # Install frontend dependencies including TypeScript
             cd assets
@@ -144,18 +148,13 @@
             export NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
             
             # Build the WebAssembly component
-            cargo component build --release --target wasm32-unknown-unknown
+            cargo component build --release --target wasm32-unknown-unknown 
           '';
 
           installPhase = ''
             mkdir -p $out/lib
-            
-            # Install WebAssembly files - transform hyphens to underscores in source file name
-            echo "Copying WebAssembly file to $out/lib"
-            echo "Looking for: ./target/wasm32-unknown-unknown/release/$(echo chat-interface | tr '-' '_').wasm"
-            echo "LS: $(ls ./target/wasm32-unknown-unknown/release)"
-            SOURCE_FILE="./target/wasm32-unknown-unknown/release/$(echo chat-interface | tr '-' '_').wasm"
-            cp $SOURCE_FILE $out/lib/chat-interface.wasm
+            wasmFile=$(ls target/wasm32-unknown-unknown/release/*.wasm)
+            cp $wasmFile $out/lib/component.wasm
             
             # Copy frontend assets to output
             mkdir -p $out/assets
@@ -207,7 +206,7 @@
 
           installPhase = ''
             mkdir -p $out
-          '';
+            '';
         };
 
       });
