@@ -15,8 +15,8 @@ use crate::bindings::ntwk::theater::runtime::log;
 use crate::bindings::ntwk::theater::store;
 use crate::bindings::ntwk::theater::supervisor::spawn;
 use crate::bindings::ntwk::theater::timing::now;
-use crate::bindings::ntwk::theater::types::ActorError;
 use crate::bindings::ntwk::theater::websocket_types::{MessageType, WebsocketMessage};
+use bindings::exports::ntwk::theater::supervisor_handlers::WitActorError;
 use genai_types::Message;
 
 use protocol::{
@@ -437,7 +437,7 @@ impl MessageServerClient for Component {
 impl SupervisorHandlersGuest for Component {
     fn handle_child_error(
         state: Option<Vec<u8>>,
-        params: (String, ActorError),
+        params: (String, WitActorError),
     ) -> Result<(Option<Vec<u8>>,), String> {
         log("Handling child error");
         let (child_id, error) = params;
