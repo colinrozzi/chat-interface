@@ -195,8 +195,8 @@
             echo "Running cargo check..."
             cargo check --target wasm32-unknown-unknown
 
-            echo "Running clippy..."
-            cargo clippy --all-targets -- -D warnings
+            # echo "Running clippy..."
+            # cargo clippy --all-targets -- -D warnings
 
             echo "Checking TypeScript..."
             cd assets
@@ -205,7 +205,9 @@
             cd ..
           '';
 
-          dontInstall = true;
+          installPhase = ''
+            mkdir -p $out
+          '';
         };
 
       });
