@@ -176,6 +176,18 @@ impl HttpHandlersGuest for Component {
                     )],
                     body: Some(js.as_bytes().to_vec()),
                 }
+            },
+            "/bundle.js.map" => {
+                // Serve JavaScript source map file
+                let map = include_str!("../assets/dist/bundle.js.map");
+                HttpResponse {
+                    status: 200,
+                    headers: vec![(
+                        "Content-Type".to_string(),
+                        "application/json".to_string(),
+                    )],
+                    body: Some(map.as_bytes().to_vec()),
+                }
             }
             "/api/conversations" => {
                 // Return list of conversations

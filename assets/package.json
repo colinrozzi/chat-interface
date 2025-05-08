@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "tsc && esbuild src/index.ts --bundle --minify --sourcemap --outfile=dist/bundle.js --target=es2020 --format=esm --platform=browser",
+		"build": "tsc && esbuild src/index.ts --bundle --minify --sourcemap=inline --outfile=dist/bundle.js --target=es2020 --format=esm --platform=browser",
 		"typecheck": "tsc --noEmit",
 		"watch": "esbuild src/index.ts --bundle --sourcemap --outfile=dist/bundle.js --target=es2020 --format=esm --platform=browser --watch",
 		"dev": "concurrently \"npm run typecheck -- --watch\" \"npm run watch\"",
