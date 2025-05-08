@@ -40,6 +40,38 @@ body {
 }
 
 /* Sidebar styles */
+
+/* Sidebar toggle */
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* Sidebar toggle animation */
+.sidebar {
+    transition: width 0.2s ease-out;
+    width: 300px;
+}
+
+.sidebar.collapsed {
+    width: 50px;
+    overflow: hidden;
+}
+
+.app.sidebar-collapsed .main-content {
+    margin-left: 50px;
+}
+
+/* Toggle button animation */
+#toggle-sidebar-btn svg {
+    transition: transform 0.2s;
+}
+
+.sidebar.collapsed #toggle-sidebar-btn svg {
+    transform: rotate(180deg);
+}
 .sidebar {
     width: 300px;
     background-color: var(--sidebar-bg);

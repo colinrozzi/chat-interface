@@ -28,6 +28,7 @@ export class UIManager {
             settingsBtn: document.getElementById('settings-btn') as HTMLElement,
             closeSettingsBtn: document.getElementById('close-settings-btn') as HTMLElement,
             sendBtn: document.getElementById('send-btn') as HTMLElement,
+            toggleSidebarBtn: document.getElementById('toggle-sidebar-btn') as HTMLElement,
 
             // Conversation elements
             conversationList: document.getElementById('conversation-list') as HTMLElement,
@@ -49,6 +50,10 @@ export class UIManager {
 
     // Set up event listeners
     setupEventListeners(actionCallback: UIEventCallback): void {
+        // Setup sidebar toggle and keyboard shortcuts
+        this.setupSidebarToggle();
+        this.setupKeyboardShortcuts();
+        
         this.onAction = actionCallback;
 
         // New chat buttons
@@ -359,5 +364,65 @@ export class UIManager {
         // Set height to scrollHeight
         const newHeight = Math.min(textarea.scrollHeight, 150);
         textarea.style.height = `${newHeight}px`;
+    }
+
+    /**
+     * Sets up the sidebar toggle functionality
+     */
+    private setupSidebarToggle(): void {
+        const toggleBtn = this.elements.toggleSidebarBtn;
+        const sidebar = document.querySelector('.sidebar') as HTMLElement;
+        const app = document.querySelector('.app') as HTMLElement;
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                app.classList.toggle('sidebar-collapsed');
+            });
+        }
+    }
+
+    /**
+     * Sets up keyboard shortcuts
+     */
+    private setupKeyboardShortcuts(): void {
+        // "/" to focus the input field
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && !this.isUserTyping()) {
+                e.preventDefault();
+                this.elements.messageInput.focus();
+            }
+        });
+
+        // Ctrl+Enter to send message
+        this.elements.messageInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                
+                if (this.elements.messageInput.value.trim()) {
+                    // Get current values
+                    const message = this.elements.messageInput.value;
+                    const conversationId = this.stateManager.getCurrentConversationId();
+                    
+                    // Clear input immediately for better UX
+                    this.elements.messageInput.value = '';
+                    
+                    // Trigger the message send
+                    if (conversationId && this.onAction) {
+                        this.onAction('send_message', { content: message });
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Helper to check if user is already typing in an input field
+     */
+    private isUserTyping(): boolean {
+        const activeEl = document.activeElement;
+        return activeEl instanceof HTMLInputElement || 
+               activeEl instanceof HTMLTextAreaElement || 
+               activeEl?.getAttribute('contenteditable') === 'true';
     }
 }

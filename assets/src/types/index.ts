@@ -118,6 +118,37 @@ export interface MessagesResponse extends ServerMessage {
 
 // UI Event Types
 
+// Added toggle sidebar button to UI Elements
+export interface UIElements {
+    // Main UI sections
+    welcomeScreen: HTMLElement;
+    conversationView: HTMLElement;
+
+    // Buttons
+    newChatBtn: HTMLElement;
+    welcomeNewChatBtn: HTMLElement;
+    settingsBtn: HTMLElement;
+    closeSettingsBtn: HTMLElement;
+    sendBtn: HTMLElement;
+    toggleSidebarBtn: HTMLElement;
+
+    // Conversation elements
+    conversationList: HTMLElement;
+    conversationTitle: HTMLElement;
+    messagesContainer: HTMLElement;
+    messageForm: HTMLFormElement;
+    messageInput: HTMLTextAreaElement;
+
+    // Settings modal
+    settingsModal: HTMLElement;
+    settingsForm: HTMLFormElement;
+    modelSelect: HTMLSelectElement;
+    temperatureInput: HTMLInputElement;
+    temperatureValue: HTMLElement;
+    maxTokensInput: HTMLInputElement;
+    systemPromptInput: HTMLTextAreaElement;
+}
+
 export interface UIEvent {
   action: string;
   data?: any;
