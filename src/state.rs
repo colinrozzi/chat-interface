@@ -1,4 +1,5 @@
 use crate::protocol::ConversationMetadata;
+use crate::{log, start_chat_state_actor, store};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -52,17 +53,70 @@ pub struct ServerConfig {
 
 /// Initialize a new state with default values
 pub fn initialize_state(store_id: &str) -> InterfaceState {
-    InterfaceState {
+    // Check if there are any conversations in the given store
+    // If not, create a new state with default values
+    let conversations =
+        store::get_by_label(store_id, "conversations").expect("Failed to get conversations");
+
+    let mut actors = HashMap::new();
+
+    let metadata = match conversations {
+        Some(content_ref) => {
+            let data = store::get(store_id, &content_ref).expect("Failed to get conversation data");
+            // Deserialize the data into conversation metadata
+            let metadata: HashMap<String, ConversationMetadata> =
+                serde_json::from_slice(&data).unwrap_or_default();
+            log(&format!("Loaded conversations from store: {:?}", metadata));
+
+            // For each conversation, start a new chat-state actor
+            for conversation_id in metadata.keys() {
+                log(&format!(
+                    "Starting chat state actor for conversation: {}",
+                    conversation_id
+                ));
+                let chat_state_actor_id = start_chat_state_actor(conversation_id, store_id)
+                    .expect("Failed to start chat state actor");
+                log(&format!(
+                    "Started chat state actor with ID: {}",
+                    chat_state_actor_id
+                ));
+
+                log(&format!(
+                    "Registering conversation actor ID: {} for conversation: {}",
+                    chat_state_actor_id, conversation_id
+                ));
+
+                actors.insert(conversation_id.clone(), chat_state_actor_id.clone());
+
+                log(&format!(
+                    "Inserted actor ID for conversation {}: {}",
+                    conversation_id, chat_state_actor_id
+                ));
+            }
+
+            metadata
+        }
+        None => {
+            log("No conversations found in store, initializing empty state");
+            HashMap::new()
+        }
+    };
+
+    log("Initialized interface state");
+
+    let interface_state = InterfaceState {
         connections: HashMap::new(),
-        conversation_actors: HashMap::new(),
-        conversation_metadata: HashMap::new(),
+        conversation_actors: actors,
+        conversation_metadata: metadata,
         store_id: store_id.to_string(),
         server_config: ServerConfig {
             port: 8080,
             host: "0.0.0.0".to_string(),
             max_connections: 1000,
         },
-    }
+    };
+
+    interface_state
 }
 
 /// Add a new connection to the state
@@ -97,6 +151,18 @@ pub fn set_active_conversation(
     } else {
         false
     }
+}
+
+pub fn store_state(state: &InterfaceState) -> Result<(), String> {
+    // Serialize the conversation metadata to JSON
+    let data = serde_json::to_vec(&state.conversation_metadata)
+        .map_err(|e| format!("Failed to serialize state: {}", e))?;
+
+    // Store the serialized data in the store
+    store::store_at_label(&state.store_id, "conversations", &data)
+        .map_err(|e| format!("Failed to store state: {}", e))?;
+
+    Ok(())
 }
 
 /// Register a new chat-state actor in the registry

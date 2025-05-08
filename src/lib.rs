@@ -27,7 +27,7 @@ use protocol::{
 use serde::{Deserialize, Serialize};
 use state::{
     add_connection, get_actor_id_for_conversation, initialize_state, register_conversation_actor,
-    remove_connection, set_active_conversation, InterfaceState,
+    remove_connection, set_active_conversation, store_state, InterfaceState,
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -102,7 +102,6 @@ impl Guest for Component {
         add_route(server_id, "/styles.css", "GET", api_handler_id)?;
         add_route(server_id, "/bundle.js", "GET", api_handler_id)?;
         add_route(server_id, "/bundle.js.map", "GET", api_handler_id)?;
-        add_route(server_id, "/favicon.ico", "GET", api_handler_id)?;
         add_route(server_id, "/api/conversations", "GET", api_handler_id)?;
         add_route(server_id, "/api/health", "GET", api_handler_id)?;
         // Enable WebSocket support
@@ -178,31 +177,14 @@ impl HttpHandlersGuest for Component {
                     )],
                     body: Some(js.as_bytes().to_vec()),
                 }
-            },
+            }
             "/bundle.js.map" => {
                 // Serve JavaScript source map file
                 let map = include_str!("../assets/dist/bundle.js.map");
                 HttpResponse {
                     status: 200,
-                    headers: vec![(
-                        "Content-Type".to_string(),
-                        "application/json".to_string(),
-                    )],
+                    headers: vec![("Content-Type".to_string(), "application/json".to_string())],
                     body: Some(map.as_bytes().to_vec()),
-                }
-            },
-            "/favicon.ico" => {
-                // Return a simple transparent favicon
-                // Base64 encoded 1x1 transparent pixel
-                let favicon = "AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//AAEAAAAA";
-                let favicon_bytes = base64::decode(favicon).unwrap_or_default();
-                HttpResponse {
-                    status: 200,
-                    headers: vec![(
-                        "Content-Type".to_string(),
-                        "image/x-icon".to_string(),
-                    )],
-                    body: Some(favicon_bytes),
                 }
             }
             "/api/conversations" => {
@@ -523,6 +505,9 @@ fn handle_client_message(
                 format!("Conversation {}", &conversation_id[..8]),
                 now(),
             );
+
+            // save the updated state to the store
+            store_state(interface_state)?;
 
             // Send confirmation to client
             let response_msg = create_conversation_created_message(&conversation_id);
@@ -980,3 +965,4 @@ fn generate_conversation_id(string: impl AsRef<[u8]>) -> String {
 }
 
 bindings::export!(Component with_types_in bindings);
+
