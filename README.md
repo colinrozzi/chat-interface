@@ -1,66 +1,50 @@
 # Chat Interface Actor
 
-A Theater HTTP server actor that serves as the central hub for user interactions in the Claude Chat system.
+## Changes Made
 
-## Purpose
+The following changes have been made to fix the WebSocket message handling issues:
 
-The `chat-interface` actor serves as the main entry point and coordinator for the chat application. It handles all user interactions, manages the web interface, and coordinates communication between users and their conversation actors.
+1. **Backend Changes**:
+   - Added route handlers for `/bundle.js.map` and `/favicon.ico`
+   - Added basic favicon.ico handling (transparent pixel)
 
-## Core Responsibilities
+2. **Frontend Changes**:
+   - Updated message type field from `message_type` to `type` to match the backend
+   - Updated message structure in type definitions to match the backend format
+   - Added proper handling for all message types
+   - Added a new handler for the 'messages' message type
 
-1. **HTTP Server Management**
-   - Serve static frontend assets (HTML, CSS, JavaScript)
-   - Handle RESTful API requests
-   - Manage WebSocket connections
+## Build Instructions
 
-2. **Connection Management**
-   - Maintain active WebSocket connections
-   - Track user sessions
-   - Manage connection to conversation mapping
-
-3. **Conversation Registry**
-   - Maintain a registry of all conversations
-   - Track conversation metadata (title, creation time, message count)
-   - Map conversation IDs to their respective `chat-state` actor IDs
-
-4. **Actor Lifecycle Management**
-   - Create new `chat-state` actors for new conversations
-   - Monitor the health of `chat-state` actors
-   - Handle actor recovery if needed
-
-5. **Message Routing**
-   - Route messages from users to the appropriate `chat-state` actors
-   - Return responses from `chat-state` actors to the correct users
-
-## Building
-
-To build the actor:
+After making these changes, you need to rebuild the frontend:
 
 ```bash
-cargo build --target wasm32-unknown-unknown --release
+cd /Users/colinrozzi/work/actor-registry/chat-interface/assets
+npm run build
 ```
 
-## Running
+This will compile the TypeScript files and bundle them with the updated message handling logic.
 
-To run the actor with Theater:
+## Restart the Actor
+
+After building the frontend, you'll need to stop and restart the chat-interface actor:
 
 ```bash
-theater start manifest.toml
+# First stop the current actor
+theater stop ed2e20c8-c23b-4233-b159-e0ae61d0141d
+
+# Then rebuild and start the actor
+cd /Users/colinrozzi/work/actor-registry
+theater start chat-interface/manifest.toml
 ```
 
-## API Endpoints
+## Testing
 
-- GET / - Serves the main chat interface
-- GET /api/conversations - Returns a list of available conversations
-- GET /api/health - System health check endpoint
-- WS /ws - WebSocket endpoint for real-time chat communication
+After restarting, test the following functionality:
 
-## WebSocket Protocol
+1. WebSocket connection (check browser console for "WebSocket connected" message)
+2. Creating a new conversation
+3. Sending and receiving messages
+4. Loading the source map (check that browser console doesn't show source map errors)
 
-See the documentation for details on the WebSocket message format and supported actions.
-
-## Implementation Notes
-
-- This actor communicates with individual `chat-state` actors, each managing a single conversation
-- Authentication and multi-user support will be added in future versions
-- See the Theater logs for debugging information
+All message type errors should now be resolved.

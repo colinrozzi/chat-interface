@@ -97,12 +97,14 @@ impl Guest for Component {
 
         // Add routes
         add_route(server_id, "/", "GET", api_handler_id)?;
+        add_route(server_id, "/", "GET", api_handler_id)?;
         add_route(server_id, "/index.html", "GET", api_handler_id)?;
         add_route(server_id, "/styles.css", "GET", api_handler_id)?;
         add_route(server_id, "/bundle.js", "GET", api_handler_id)?;
+        add_route(server_id, "/bundle.js.map", "GET", api_handler_id)?;
+        add_route(server_id, "/favicon.ico", "GET", api_handler_id)?;
         add_route(server_id, "/api/conversations", "GET", api_handler_id)?;
         add_route(server_id, "/api/health", "GET", api_handler_id)?;
-
         // Enable WebSocket support
         enable_websocket(
             server_id,
@@ -187,6 +189,20 @@ impl HttpHandlersGuest for Component {
                         "application/json".to_string(),
                     )],
                     body: Some(map.as_bytes().to_vec()),
+                }
+            },
+            "/favicon.ico" => {
+                // Return a simple transparent favicon
+                // Base64 encoded 1x1 transparent pixel
+                let favicon = "AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//AAEAAAAA";
+                let favicon_bytes = base64::decode(favicon).unwrap_or_default();
+                HttpResponse {
+                    status: 200,
+                    headers: vec![(
+                        "Content-Type".to_string(),
+                        "image/x-icon".to_string(),
+                    )],
+                    body: Some(favicon_bytes),
                 }
             }
             "/api/conversations" => {

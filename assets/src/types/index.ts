@@ -65,46 +65,47 @@ export interface AppState {
 // Server Response Types
 
 export interface ServerMessage {
-  message_type: string;
+  type: string;
   conversation_id?: string;
   content?: any;
   error?: string;
+  message?: string;
 }
 
 export interface ConversationCreatedMessage extends ServerMessage {
-  message_type: 'conversation_created';
+  type: 'conversation_created';
   conversation_id: string;
-  content: string;
+  message: string;
 }
 
 export interface MessageResponse extends ServerMessage {
-  message_type: 'message';
+  type: 'message';
   conversation_id: string;
   content: Message;
 }
 
 export interface ErrorMessage extends ServerMessage {
-  message_type: 'error';
+  type: 'error';
   conversation_id?: string;
-  content: string;
-  error: string;
+  message: string;
+  error_code: string;
 }
 
 export interface ConversationListMessage extends ServerMessage {
-  message_type: 'conversation_list';
-  content: Conversation[];
+  type: 'conversation_list';
+  conversations: Record<string, Conversation>;
 }
 
 export interface HistoryMessage extends ServerMessage {
-  message_type: 'history';
+  type: 'conversation';
   conversation_id: string;
-  content: Message[];
+  messages: Message[];
 }
 
 export interface SettingsMessage extends ServerMessage {
-  message_type: 'settings';
+  type: 'settings';
   conversation_id: string;
-  content: Settings;
+  settings: Settings;
 }
 
 // UI Event Types

@@ -12,6 +12,7 @@ import {
     MessageResponse,
     ErrorMessage,
     SettingsMessage,
+    HistoryMessage,
     Message
 } from './types';
 
@@ -31,7 +32,7 @@ export class MessageHandler {
     handleServerMessage(message: ServerMessage): void {
         console.log('Received message:', message);
         
-        switch (message.message_type) {
+        switch (message.type) {
             case 'conversation_created':
                 this.handleConversationCreated(message as ConversationCreatedMessage);
                 break;
@@ -44,8 +45,12 @@ export class MessageHandler {
                 this.handleMessage(message as MessageResponse);
                 break;
                 
-            case 'history':
-                this.handleHistory(message);
+            case 'conversation':
+                this.handleHistory(message as HistoryMessage);
+                break;
+            
+            case 'messages':
+                this.handleMessages(message);
                 break;
                 
             case 'settings':
@@ -104,11 +109,8 @@ export class MessageHandler {
      * @param {ConversationListMessage} message - The conversation_list message
      */
     handleConversationList(message: ConversationListMessage): void {
-        // Convert array to map
-        const conversationsMap = message.content.reduce((acc, conv) => {
-            acc[conv.id] = conv;
-            return acc;
-        }, {} as Record<string, any>);
+        // Use the conversations map directly
+        const conversationsMap = message.conversations;
         
         // Store conversations
         this.stateManager.setConversations(conversationsMap);
@@ -156,17 +158,35 @@ export class MessageHandler {
     }
     
     /**
-     * Handle history message
-     * @param {ServerMessage} message - The history message
+     * Handle messages array response
+     * @param {ServerMessage} message - The messages array response
      */
-    handleHistory(message: ServerMessage): void {
+    handleMessages(message: ServerMessage): void {
         if (message.conversation_id !== this.stateManager.getCurrentConversationId()) {
             return;
         }
         
         // Set messages in state
-        if (Array.isArray(message.content)) {
-            this.stateManager.setMessages(message.content as Message[]);
+        if (Array.isArray(message.messages)) {
+            this.stateManager.setMessages(message.messages as Message[]);
+        }
+        
+        // Update UI
+        this.uiManager.updateMessagesDisplay(this.stateManager.getMessages());
+    }
+    
+    /**
+     * Handle history message
+     * @param {ServerMessage} message - The history message
+     */
+    handleHistory(message: HistoryMessage): void {
+        if (message.conversation_id !== this.stateManager.getCurrentConversationId()) {
+            return;
+        }
+        
+        // Set messages in state
+        if (Array.isArray(message.messages)) {
+            this.stateManager.setMessages(message.messages);
         }
         
         // Update UI
@@ -183,10 +203,10 @@ export class MessageHandler {
         }
         
         // Store settings
-        this.stateManager.setSettings(message.content);
+        this.stateManager.setSettings(message.settings);
         
         // Update UI
-        this.uiManager.updateSettingsDisplay(message.content);
+        this.uiManager.updateSettingsDisplay(message.settings);
     }
     
     /**
@@ -203,10 +223,10 @@ export class MessageHandler {
      * @param {ErrorMessage} message - The error message
      */
     handleError(message: ErrorMessage): void {
-        console.error('Error:', message.error, message.content);
+        console.error('Error:', message.error_code, message.message);
         
         // Show error to user
-        this.uiManager.showError(message.error, message.content);
+        this.uiManager.showError(message.error_code, message.message);
     }
     
     /**
