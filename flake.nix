@@ -154,6 +154,15 @@
           installPhase = ''
             mkdir -p $out/lib
             wasmFile=$(ls target/wasm32-unknown-unknown/release/*.wasm)
+            if [ -z "$wasmFile" ]; then
+              echo "Error: No .wasm file found in target/wasm32-unknown-unknown/release/"
+              exit 1
+            fi
+            # Ensure there is only one .wasm file
+            if [ $(echo $wasmFile | wc -w) -ne 1 ]; then
+              echo "Error: More than one .wasm file found in target/wasm32-unknown-unknown/release/"
+              exit 1
+            fi
             cp $wasmFile $out/lib/component.wasm
             
             # Copy frontend assets to output

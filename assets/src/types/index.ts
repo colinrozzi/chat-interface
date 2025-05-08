@@ -70,6 +70,8 @@ export interface ServerMessage {
   content?: any;
   error?: string;
   message?: string;
+  messages?: Message[];
+  error_code?: string;
 }
 
 export interface ConversationCreatedMessage extends ServerMessage {
@@ -106,6 +108,12 @@ export interface SettingsMessage extends ServerMessage {
   type: 'settings';
   conversation_id: string;
   settings: Settings;
+}
+
+export interface MessagesResponse extends ServerMessage {
+  type: 'messages';
+  conversation_id: string;
+  messages: Message[];
 }
 
 // UI Event Types

@@ -13,6 +13,7 @@ import {
     ErrorMessage,
     SettingsMessage,
     HistoryMessage,
+    MessagesResponse,
     Message
 } from './types';
 
@@ -50,7 +51,7 @@ export class MessageHandler {
                 break;
             
             case 'messages':
-                this.handleMessages(message);
+                this.handleMessages(message as MessagesResponse);
                 break;
                 
             case 'settings':
@@ -70,7 +71,7 @@ export class MessageHandler {
                 break;
                 
             default:
-                console.warn('Unknown message type:', message.message_type);
+                console.warn('Unknown message type:', message.type);
         }
     }
     
@@ -161,14 +162,14 @@ export class MessageHandler {
      * Handle messages array response
      * @param {ServerMessage} message - The messages array response
      */
-    handleMessages(message: ServerMessage): void {
+    handleMessages(message: MessagesResponse): void {
         if (message.conversation_id !== this.stateManager.getCurrentConversationId()) {
             return;
         }
         
         // Set messages in state
         if (Array.isArray(message.messages)) {
-            this.stateManager.setMessages(message.messages as Message[]);
+            this.stateManager.setMessages(message.messages);
         }
         
         // Update UI

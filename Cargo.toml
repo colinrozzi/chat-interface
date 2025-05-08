@@ -12,6 +12,7 @@ sha1 = "0.10.5"
 hex = "0.4.3"
 genai-types = "0.1"
 mcp-protocol = "0.2"
+base64 = "0.22.1"
 
 [dependencies.wit-bindgen-rt]
 features = ["bitflags"]

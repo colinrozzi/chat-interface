@@ -1,5 +1,20 @@
 # Chat Interface Actor
 
+## Issues Fixed
+
+1. **WebSocket Message Type Error**: 
+   - Fixed the mismatch between frontend and backend message formats
+   - Changed message type field from `message_type` to `type` to match the backend response format
+   - Updated all message type interfaces to match the actual data sent by the server
+
+2. **Source Map Loading Error**:
+   - Added a route handler for `/bundle.js.map` to properly serve the source map file
+   - Ensured the mapping to `../assets/dist/bundle.js.map` is correct
+
+3. **Favicon 404 Error**:
+   - Added a route handler for `/favicon.ico` to prevent 404 errors in the browser
+   - Implemented a simple transparent favicon response
+
 ## Changes Made
 
 The following changes have been made to fix the WebSocket message handling issues:
@@ -13,6 +28,15 @@ The following changes have been made to fix the WebSocket message handling issue
    - Updated message structure in type definitions to match the backend format
    - Added proper handling for all message types
    - Added a new handler for the 'messages' message type
+
+## TypeScript Errors Fixed
+
+Additional TypeScript type errors were fixed:
+
+1. Fixed reference to `message.message_type` (changed to `message.type`)
+2. Added proper typings for `messages` property in the `ServerMessage` interface
+3. Created a dedicated `MessagesResponse` interface for the 'messages' message type
+4. Fixed type safety issues by using proper type casting and checking
 
 ## Build Instructions
 
