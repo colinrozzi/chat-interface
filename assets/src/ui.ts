@@ -204,8 +204,12 @@ export class UIManager {
         const settings = this.stateManager.getSettings();
 
         this.elements.modelSelect.value = settings.model_config.model;
-        this.elements.temperatureInput.value = settings.temperature.toString();
-        this.elements.temperatureValue.textContent = settings.temperature.toString();
+        
+        // Handle null or undefined temperature value
+        const temperatureValue = settings.temperature != null ? settings.temperature : 0.7;
+        this.elements.temperatureInput.value = temperatureValue.toString();
+        this.elements.temperatureValue.textContent = temperatureValue.toString();
+        
         this.elements.maxTokensInput.value = settings.max_tokens.toString();
         this.elements.systemPromptInput.value = settings.system_prompt || '';
 
@@ -309,12 +313,15 @@ export class UIManager {
         // Process each content block
         const toolBlocks: { type: string, element: HTMLElement, id?: string }[] = [];
 
+        let contentAdded = false;
+
         message.content.forEach(block => {
             if (block.type === 'text') {
                 // Handle regular text content
                 const textEl = document.createElement('div');
                 textEl.innerHTML = this.formatMessageContent(block.text);
                 contentWrapper.appendChild(textEl);
+                contentAdded = true;
             }
             else if (block.type === 'tool_use') {
                 // Create tool call element
@@ -324,6 +331,7 @@ export class UIManager {
                 // Store in pending map for later pairing
                 this.pendingToolCalls.set(block.id, toolPairEl);
                 contentWrapper.appendChild(toolPairEl);
+                contentAdded = true;
             }
             else if (block.type === 'tool_result') {
                 // Try to find matching tool call
@@ -344,7 +352,9 @@ export class UIManager {
             }
         });
 
-        this.elements.messagesContainer.appendChild(messageEl);
+        if (contentAdded) {
+            this.elements.messagesContainer.appendChild(messageEl);
+        }
 
         // Set up event listeners for tool pair toggles
         toolBlocks.forEach(item => {

@@ -124,8 +124,12 @@ body {
 }
 
 .app.sidebar-collapsed .sidebar-toggle-btn {
-    right: auto;
-    left: 12px;
+    right: -30px;
+    left: auto;
+    /* Critical fix: position the button outside the sidebar's transform */
+    position: fixed;
+    z-index: 1000;
+    top: 50%;
 }
 
 .app.sidebar-collapsed .sidebar-toggle-btn .icon-open {
@@ -149,6 +153,7 @@ body {
     background-color: var(--sidebar-bg);
     border-right: 1px solid var(--border-color);
     display: flex;
+    z-index: 10; /* Higher than main content, lower than toggle button */
     flex-direction: column;
     height: 100%;
 }
@@ -225,6 +230,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100%;
+    z-index: 5; /* Ensure this is lower than sidebar toggle button z-index */
 }
 
 .chat-container {
@@ -299,8 +305,7 @@ body {
     width: 80%; /* Consistent width for all messages */
     max-width: 800px; /* Maximum width to prevent stretching on large screens */
     padding: 1rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--highlight-color);
+    /*border-bottom: 1px solid var(--highlight-color);*/
 }
 
 
@@ -883,6 +888,8 @@ body {
         left: auto;
         bottom: 10px;
         top: auto;
+        position: fixed;
+        z-index: 1000;
     }
     
     .main-content {
