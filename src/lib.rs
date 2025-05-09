@@ -159,7 +159,7 @@ impl HttpHandlersGuest for Component {
             }
             "/styles.css" => {
                 // Serve CSS file
-                let css = include_str!("../assets/styles-updated.css");
+                let css = include_str!("../assets/styles.css");
                 HttpResponse {
                     status: 200,
                     headers: vec![("Content-Type".to_string(), "text/css".to_string())],

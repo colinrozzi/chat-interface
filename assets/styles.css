@@ -293,15 +293,11 @@ body {
 .message-user {
     background-color: var(--user-message-bg);
     border-left: 4px solid var(--primary-color);
-    align-self: flex-end; /* Right-align user messages */
-    margin-left: 2rem;
 }
 
 .message-assistant {
     background-color: var(--assistant-message-bg);
     border-left: 4px solid var(--primary-hover);
-    align-self: flex-start; /* Left-align assistant messages */
-    margin-right: 2rem;
 }
 
 /* Message content styling */
