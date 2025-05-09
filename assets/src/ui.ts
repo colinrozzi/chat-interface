@@ -182,7 +182,7 @@ export class UIManager {
                     <div class="dot"></div>
                 </div>
             </div>
-        `;
+        `.replace(/\s+/g, ' ').trim();
 
         this.elements.messagesContainer.appendChild(loadingEl);
         this.scrollToBottom();
@@ -263,7 +263,7 @@ export class UIManager {
                 <div class="conversation-item-meta">
                     ${this.formatDate(conversation.updated_at)} · ${conversation.message_count || 0} messages
                 </div>
-            `;
+            `.replace(/\s+/g, ' ').trim();
 
             li.addEventListener('click', () => {
                 if (this.onAction) {
@@ -414,7 +414,7 @@ export class UIManager {
                     </div>
                 </div>
             </div>
-        `;
+        `.replace(/\s+/g, ' ').trim();
 
         return toolPairEl;
     }
@@ -464,9 +464,9 @@ export class UIManager {
                         <button class="tool-copy-btn" data-content="result">Copy</button>
                     </div>
                     <span class="tool-collapse-toggle" title="Toggle content visibility">▼</span>
-                `;
+                `.replace(/\s+/g, ' ').trim();
                 
-                bodyEl.innerHTML = `<div>${resultContent}</div>`;
+                bodyEl.innerHTML = `<div>${resultContent}</div>`.replace(/\s+/g, ' ').trim();
                 
                 // Add collapsed class for long content
                 if (isLongContent) {
@@ -538,7 +538,7 @@ export class UIManager {
                 </div>
                 <span class="tool-collapse-toggle" title="Toggle content visibility">▼</span>
             </div>
-        `;
+        `.replace(/\s+/g, ' ').trim();
         
         // Determine if we should collapse the content initially
         const isLongContent = resultContent.length > 500;
@@ -547,7 +547,7 @@ export class UIManager {
         resultEl.innerHTML = `
             ${headerContent}
             <div class="${bodyClass}">${resultContent}</div>
-        `;
+        `.replace(/\s+/g, ' ').trim();
         
         // Add toggle button for long content
         if (isLongContent) {
