@@ -608,8 +608,13 @@ body {
     border-bottom: 1px solid #FECACA;
 }
 
-/* Responsiveness */
+/* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
+    :root {
+        --sidebar-width: 100%;
+        --settings-panel-width: 100%;
+    }
+    
     .app {
         flex-direction: column;
     }
@@ -617,7 +622,45 @@ body {
     .sidebar {
         width: 100%;
         height: auto;
-        max-height: 35vh;
+        max-height: 40vh;
+    }
+    
+    .app.sidebar-collapsed .sidebar {
+        transform: translateY(calc(-100% + 40px));
+    }
+    
+    .sidebar-toggle-btn {
+        right: 10px;
+        top: auto;
+        bottom: -12px;
+        transform: none;
+    }
+    
+    .app.sidebar-collapsed .sidebar-toggle-btn {
+        right: 10px;
+        left: auto;
+        bottom: 10px;
+        top: auto;
+    }
+    
+    .main-content {
+        height: 60vh;
+    }
+    
+    .message {
+        max-width: 100%;
+    }
+    
+    .settings-panel {
+        width: 100%;
+    }
+    
+    .app.settings-open .main-content {
+        margin-right: 0;
+    }
+    
+    .settings-overlay.visible {
+        display: block;
     }
     
     .conversation-item-meta {

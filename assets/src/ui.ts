@@ -28,7 +28,7 @@ export class UIManager {
             settingsBtn: document.getElementById('settings-btn') as HTMLElement,
             closeSettingsBtn: document.getElementById('close-settings-btn') as HTMLElement,
             sendBtn: document.getElementById('send-btn') as HTMLElement,
-            toggleSidebarBtn: document.getElementById('toggle-sidebar-btn') as HTMLElement,
+            sidebarToggleBtn: document.getElementById('sidebar-toggle-btn') as HTMLElement,
 
             // Conversation elements
             conversationList: document.getElementById('conversation-list') as HTMLElement,
@@ -37,8 +37,9 @@ export class UIManager {
             messageForm: document.getElementById('message-form') as HTMLFormElement,
             messageInput: document.getElementById('message-input') as HTMLTextAreaElement,
 
-            // Settings modal
-            settingsModal: document.getElementById('settings-modal') as HTMLElement,
+            // Settings panel
+            settingsPanel: document.getElementById('settings-panel') as HTMLElement,
+            settingsOverlay: document.getElementById('settings-overlay') as HTMLElement,
             settingsForm: document.getElementById('settings-form') as HTMLFormElement,
             modelSelect: document.getElementById('model-select') as HTMLSelectElement,
             temperatureInput: document.getElementById('temperature-input') as HTMLInputElement,
@@ -208,12 +209,22 @@ export class UIManager {
         this.elements.maxTokensInput.value = settings.max_tokens.toString();
         this.elements.systemPromptInput.value = settings.system_prompt || '';
 
-        // Show modal
-        this.elements.settingsModal.classList.remove('hidden');
+        // Show settings panel and overlay
+        this.elements.settingsPanel.classList.add('visible');
+        this.elements.settingsOverlay.classList.add('visible');
+        
+        // Add class to main app for styling
+        const app = document.querySelector('.app') as HTMLElement;
+        app.classList.add('settings-open');
     }
 
     closeSettingsModal(): void {
-        this.elements.settingsModal.classList.add('hidden');
+        this.elements.settingsPanel.classList.remove('visible');
+        this.elements.settingsOverlay.classList.remove('visible');
+        
+        // Remove class from main app
+        const app = document.querySelector('.app') as HTMLElement;
+        app.classList.remove('settings-open');
     }
 
     // Settings display
@@ -445,8 +456,51 @@ export class UIManager {
             const bodyEl = toolResultEl.querySelector('.tool-body');
 
             if (headerEl && bodyEl) {
-                headerEl.innerHTML = `Result <button class="tool-copy-btn" data-content="result">Copy</button>`;
+                const isLongContent = resultContent.length > 500;
+                
+                headerEl.innerHTML = `
+                    <div>
+                        <span>Result</span>
+                        <button class="tool-copy-btn" data-content="result">Copy</button>
+                    </div>
+                    <span class="tool-collapse-toggle" title="Toggle content visibility">▼</span>
+                `;
+                
                 bodyEl.innerHTML = `<div>${resultContent}</div>`;
+                
+                // Add collapsed class for long content
+                if (isLongContent) {
+                    bodyEl.classList.add('collapsed');
+                    
+                    // Add toggle button
+                    const toggleButton = document.createElement('div');
+                    toggleButton.className = 'tool-toggle';
+                    toggleButton.textContent = 'Show more';
+                    toggleButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        bodyEl.classList.toggle('collapsed');
+                        toggleButton.textContent = bodyEl.classList.contains('collapsed') ? 'Show more' : 'Show less';
+                    });
+                    
+                    // Add it after the body element
+                    bodyEl.parentNode?.insertBefore(toggleButton, bodyEl.nextSibling);
+                }
+                
+                // Add collapsible functionality
+                const collapseToggle = headerEl.querySelector('.tool-collapse-toggle');
+                if (collapseToggle) {
+                    collapseToggle.addEventListener('click', () => {
+                        const isHidden = bodyEl.style.display === 'none';
+                        bodyEl.style.display = isHidden ? 'block' : 'none';
+                        collapseToggle.textContent = isHidden ? '▼' : '▶';
+                        
+                        // Hide/show the toggle button as well
+                        const toggleBtn = bodyEl.nextSibling as HTMLElement;
+                        if (toggleBtn && toggleBtn.classList.contains('tool-toggle')) {
+                            toggleBtn.style.display = isHidden ? 'block' : 'none';
+                        }
+                    });
+                }
             }
         }
 
@@ -474,11 +528,62 @@ export class UIManager {
         }
 
         resultEl.className = `tool-result${errorClass}`;
-        resultEl.innerHTML = `
-            <div class="tool-header">Tool Result (ID: ${result.tool_use_id.substring(0, 8)}...)</div>
-            <div class="tool-body">${resultContent}</div>
+        
+        // Create a more interactive header with a toggle button
+        const headerContent = `
+            <div class="tool-header">
+                <div>
+                    <span class="tool-name">Tool Result (ID: ${result.tool_use_id.substring(0, 8)}...)</span>
+                </div>
+                <span class="tool-collapse-toggle" title="Toggle content visibility">▼</span>
+            </div>
         `;
-
+        
+        // Determine if we should collapse the content initially
+        const isLongContent = resultContent.length > 500;
+        const bodyClass = isLongContent ? 'tool-body collapsed' : 'tool-body';
+        
+        resultEl.innerHTML = `
+            ${headerContent}
+            <div class="${bodyClass}">${resultContent}</div>
+        `;
+        
+        // Add toggle button for long content
+        if (isLongContent) {
+            const toggleButton = document.createElement('div');
+            toggleButton.className = 'tool-toggle';
+            toggleButton.textContent = 'Show more';
+            toggleButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                const bodyEl = resultEl.querySelector('.tool-body');
+                if (bodyEl) {
+                    bodyEl.classList.toggle('collapsed');
+                    toggleButton.textContent = bodyEl.classList.contains('collapsed') ? 'Show more' : 'Show less';
+                }
+            });
+            
+            resultEl.appendChild(toggleButton);
+        }
+        
+        // Add collapsible functionality
+        const collapseToggle = resultEl.querySelector('.tool-collapse-toggle');
+        if (collapseToggle) {
+            collapseToggle.addEventListener('click', () => {
+                const bodyEl = resultEl.querySelector('.tool-body');
+                if (bodyEl) {
+                    const isHidden = bodyEl.style.display === 'none';
+                    bodyEl.style.display = isHidden ? 'block' : 'none';
+                    collapseToggle.textContent = isHidden ? '▼' : '▶';
+                    
+                    // Hide/show the toggle button as well
+                    const toggleBtn = resultEl.querySelector('.tool-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.style.display = isHidden ? 'block' : 'none';
+                    }
+                }
+            });
+        }
+        
         return resultEl;
     }
 
@@ -599,15 +704,22 @@ export class UIManager {
  * Sets up the sidebar toggle functionality
  */
     setupSidebarToggle(): void {
-    const toggleBtn = this.elements.toggleSidebarBtn;
-    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+    const toggleBtn = this.elements.sidebarToggleBtn;
     const app = document.querySelector('.app') as HTMLElement;
 
     if(toggleBtn) {
         toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
             app.classList.toggle('sidebar-collapsed');
+            
+            // Save state to localStorage
+            localStorage.setItem('sidebar-collapsed', app.classList.contains('sidebar-collapsed').toString());
         });
+    }
+    
+    // Load initial state from localStorage
+    const sidebarCollapsed = localStorage.getItem('sidebar-collapsed');
+    if (sidebarCollapsed === 'true') {
+        app.classList.add('sidebar-collapsed');
     }
 }
 

@@ -146,7 +146,7 @@ export interface UIElements {
     settingsBtn: HTMLElement;
     closeSettingsBtn: HTMLElement;
     sendBtn: HTMLElement;
-    toggleSidebarBtn: HTMLElement;
+    sidebarToggleBtn: HTMLElement;
 
     // Conversation elements
     conversationList: HTMLElement;
@@ -155,8 +155,9 @@ export interface UIElements {
     messageForm: HTMLFormElement;
     messageInput: HTMLTextAreaElement;
 
-    // Settings modal
-    settingsModal: HTMLElement;
+    // Settings panel
+    settingsPanel: HTMLElement;
+    settingsOverlay: HTMLElement;
     settingsForm: HTMLFormElement;
     modelSelect: HTMLSelectElement;
     temperatureInput: HTMLInputElement;
