@@ -24,10 +24,26 @@ export interface Conversation {
 
 export type MessageRole = 'user' | 'assistant' | 'system';
 
-export interface ContentBlock {
-  type: string;
+export interface TextContentBlock {
+  type: 'text';
   text: string;
 }
+
+export interface ToolUseContentBlock {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: any;
+}
+
+export interface ToolResultContentBlock {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: TextContentBlock[];
+  is_error: boolean | null;
+}
+
+export type ContentBlock = TextContentBlock | ToolUseContentBlock | ToolResultContentBlock;
 
 export interface Message {
   id?: string;

@@ -289,9 +289,42 @@ export class UIManager {
         const messageEl = document.createElement('div');
         messageEl.className = `message message-${message.role}`;
 
-        // Format message content with Markdown (simple version)
-        const messageContent = message.content.map(block => block.text).join('\n');
-        const formattedContent = this.formatMessageContent(messageContent);
+        // Format message content based on content type
+        let formattedContent = '';
+        
+        message.content.forEach(block => {
+            if (block.type === 'text') {
+                // Handle regular text content
+                formattedContent += this.formatMessageContent(block.text);
+            } 
+            else if (block.type === 'tool_use') {
+                // Handle tool use
+                formattedContent += `<div class="tool-use">
+                    <div class="tool-header">🔧 Tool Use: ${block.name}</div>
+                    <div class="tool-body">
+                        <pre>${JSON.stringify(block.input || {}, null, 2)}</pre>
+                    </div>
+                </div>`;
+            } 
+            else if (block.type === 'tool_result') {
+                // Handle tool result
+                let resultContent = '';
+                
+                if (block.content && Array.isArray(block.content)) {
+                    block.content.forEach(innerBlock => {
+                        if (innerBlock.type === 'text') {
+                            resultContent += this.formatMessageContent(innerBlock.text);
+                        }
+                    });
+                }
+                
+                const errorClass = block.is_error ? ' tool-result-error' : '';
+                formattedContent += `<div class="tool-result${errorClass}">
+                    <div class="tool-header">🔍 Tool Result</div>
+                    <div class="tool-body">${resultContent}</div>
+                </div>`;
+            }
+        });
 
         messageEl.innerHTML = `
             <div class="message-content">${formattedContent}</div>

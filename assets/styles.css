@@ -453,6 +453,45 @@ body {
     }
 }
 
+/* Tool Display Styles */
+.tool-use, .tool-result {
+    background-color: #f7f7f7;
+    border-radius: 8px;
+    margin: 12px 0;
+    padding: 12px;
+}
+
+.tool-header {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.tool-body {
+    white-space: pre-wrap;
+}
+
+.tool-body pre {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 6px;
+    overflow: auto;
+    margin: 0;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.tool-result {
+    background-color: #f0f8ff;
+    border-left: 3px solid var(--primary-color);
+}
+
+.tool-result-error {
+    background-color: #fff8f8;
+    border-left: 3px solid #e53e3e;
+}
+
 /* Responsiveness */
 @media (max-width: 768px) {
     .app {
