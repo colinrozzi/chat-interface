@@ -5,7 +5,7 @@
 
 import { StateManager } from './state';
 import { UIElements, MessageDisplayOptions } from './types';
-import { UIEventCallback, Message, Settings } from './types';
+import { UIEventCallback, Message, Settings, ContentBlock } from './types';
 
 export class UIManager {
     stateManager: StateManager;
@@ -415,7 +415,7 @@ export class UIManager {
         // Get result content
         let resultContent = '';
         if (result.content && Array.isArray(result.content)) {
-            result.content.forEach(innerBlock => {
+            result.content.forEach((innerBlock: ContentBlock) => {
                 if (innerBlock.type === 'text') {
                     resultContent += this.formatMessageContent(innerBlock.text);
                 }
@@ -466,7 +466,7 @@ export class UIManager {
         // Get result content
         let resultContent = '';
         if (result.content && Array.isArray(result.content)) {
-            result.content.forEach(innerBlock => {
+            result.content.forEach((innerBlock: ContentBlock) => {
                 if (innerBlock.type === 'text') {
                     resultContent += this.formatMessageContent(innerBlock.text);
                 }
