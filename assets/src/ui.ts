@@ -8,9 +8,9 @@ import { UIElements, MessageDisplayOptions } from './types';
 import { UIEventCallback, Message, Settings } from './types';
 
 export class UIManager {
-    private stateManager: StateManager;
-    private elements: UIElements;
-    private onAction: UIEventCallback | null;
+    stateManager: StateManager;
+    elements: UIElements;
+    onAction: UIEventCallback | null;
 
     constructor(stateManager: StateManager) {
         this.stateManager = stateManager;
@@ -53,7 +53,7 @@ export class UIManager {
         // Setup sidebar toggle and keyboard shortcuts
         this.setupSidebarToggle();
         this.setupKeyboardShortcuts();
-        
+
         this.onAction = actionCallback;
 
         // New chat buttons
@@ -283,7 +283,7 @@ export class UIManager {
     }
 
     // Store for pending tool calls until matched with results
-    private pendingToolCalls: Map<string, HTMLElement> = new Map();
+    pendingToolCalls: Map<string, HTMLElement> = new Map();
 
     addMessage(message: Message, scroll: boolean = true): void {
         // Remove loading indicator if present
@@ -296,24 +296,24 @@ export class UIManager {
         messageEl.appendChild(contentWrapper);
 
         // Process each content block
-        const toolBlocks: {type: string, element: HTMLElement, id?: string}[] = [];
-        
+        const toolBlocks: { type: string, element: HTMLElement, id?: string }[] = [];
+
         message.content.forEach(block => {
             if (block.type === 'text') {
                 // Handle regular text content
                 const textEl = document.createElement('div');
                 textEl.innerHTML = this.formatMessageContent(block.text);
                 contentWrapper.appendChild(textEl);
-            } 
+            }
             else if (block.type === 'tool_use') {
                 // Create tool call element
                 const toolPairEl = this.createToolPairElement(block.id, block.name, block.input);
-                toolBlocks.push({type: 'tool_use', element: toolPairEl, id: block.id});
-                
+                toolBlocks.push({ type: 'tool_use', element: toolPairEl, id: block.id });
+
                 // Store in pending map for later pairing
                 this.pendingToolCalls.set(block.id, toolPairEl);
                 contentWrapper.appendChild(toolPairEl);
-            } 
+            }
             else if (block.type === 'tool_result') {
                 // Try to find matching tool call
                 if (this.pendingToolCalls.has(block.tool_use_id)) {
@@ -321,14 +321,14 @@ export class UIManager {
                     const toolPairEl = this.pendingToolCalls.get(block.tool_use_id)!;
                     this.updateToolPairWithResult(toolPairEl, block);
                     this.pendingToolCalls.delete(block.tool_use_id);
-                    
+
                     // Mark this block as processed (no need to add again)
-                    toolBlocks.push({type: 'tool_result', element: toolPairEl, id: block.tool_use_id});
+                    toolBlocks.push({ type: 'tool_result', element: toolPairEl, id: block.tool_use_id });
                 } else {
                     // If no matching tool call found, create standalone result
                     const standaloneResultEl = this.createStandaloneResultElement(block);
                     contentWrapper.appendChild(standaloneResultEl);
-                    toolBlocks.push({type: 'tool_result', element: standaloneResultEl});
+                    toolBlocks.push({ type: 'tool_result', element: standaloneResultEl });
                 }
             }
         });
@@ -356,15 +356,15 @@ export class UIManager {
     /**
      * Creates a collapsible tool pair element
      */
-    private createToolPairElement(id: string, name: string, input: any): HTMLElement {
+    createToolPairElement(id: string, name: string, input: any): HTMLElement {
         const toolPairEl = document.createElement('div');
         toolPairEl.className = 'tool-pair';
         toolPairEl.dataset.toolId = id;
-        
+
         // Create preview text
         const inputStr = JSON.stringify(input);
         const preview = this.truncateText(inputStr, 40);
-        
+
         // Create summary header (always visible)
         toolPairEl.innerHTML = `
             <div class="tool-summary">
@@ -404,14 +404,14 @@ export class UIManager {
                 </div>
             </div>
         `;
-        
+
         return toolPairEl;
     }
 
     /**
      * Updates a tool pair element with a result
      */
-    private updateToolPairWithResult(toolPairEl: HTMLElement, result: any): void {
+    updateToolPairWithResult(toolPairEl: HTMLElement, result: any): void {
         // Get result content
         let resultContent = '';
         if (result.content && Array.isArray(result.content)) {
@@ -421,7 +421,7 @@ export class UIManager {
                 }
             });
         }
-        
+
         // Update status indicator
         const statusIndicator = toolPairEl.querySelector('.status-indicator');
         if (statusIndicator) {
@@ -433,23 +433,23 @@ export class UIManager {
                 statusIndicator.classList.add('success');
             }
         }
-        
+
         // Update tool result content
         const toolResultEl = toolPairEl.querySelector('.tool-result');
         if (toolResultEl) {
             if (result.is_error) {
                 toolResultEl.classList.add('tool-result-error');
             }
-            
+
             const headerEl = toolResultEl.querySelector('.tool-header');
             const bodyEl = toolResultEl.querySelector('.tool-body');
-            
+
             if (headerEl && bodyEl) {
                 headerEl.innerHTML = `Result <button class="tool-copy-btn" data-content="result">Copy</button>`;
                 bodyEl.innerHTML = `<div>${resultContent}</div>`;
             }
         }
-        
+
         // Auto-expand on error
         if (result.is_error) {
             toolPairEl.classList.add('expanded');
@@ -459,10 +459,10 @@ export class UIManager {
     /**
      * Creates a standalone result element (for cases where tool call is missing)
      */
-    private createStandaloneResultElement(result: any): HTMLElement {
+    createStandaloneResultElement(result: any): HTMLElement {
         const resultEl = document.createElement('div');
         const errorClass = result.is_error ? ' tool-result-error' : '';
-        
+
         // Get result content
         let resultContent = '';
         if (result.content && Array.isArray(result.content)) {
@@ -472,27 +472,27 @@ export class UIManager {
                 }
             });
         }
-        
+
         resultEl.className = `tool-result${errorClass}`;
         resultEl.innerHTML = `
             <div class="tool-header">Tool Result (ID: ${result.tool_use_id.substring(0, 8)}...)</div>
             <div class="tool-body">${resultContent}</div>
         `;
-        
+
         return resultEl;
     }
-    
+
     /**
      * Sets up click handler for tool pair toggle
      */
-    private setupToolPairToggle(element: HTMLElement): void {
+    setupToolPairToggle(element: HTMLElement): void {
         const summaryEl = element.querySelector('.tool-summary');
         if (summaryEl) {
             summaryEl.addEventListener('click', () => {
                 element.classList.toggle('expanded');
             });
         }
-        
+
         // Set up copy buttons
         const copyButtons = element.querySelectorAll('.tool-copy-btn');
         copyButtons.forEach(btn => {
@@ -500,7 +500,7 @@ export class UIManager {
                 e.stopPropagation(); // Prevent toggle
                 const contentType = (btn as HTMLElement).dataset.content;
                 let textToCopy = '';
-                
+
                 if (contentType === 'input') {
                     const inputEl = element.querySelector('.tool-use pre');
                     if (inputEl) textToCopy = inputEl.textContent || '';
@@ -508,7 +508,7 @@ export class UIManager {
                     const resultEl = element.querySelector('.tool-result .tool-body');
                     if (resultEl) textToCopy = resultEl.textContent || '';
                 }
-                
+
                 if (textToCopy) {
                     navigator.clipboard.writeText(textToCopy)
                         .then(() => {
@@ -525,14 +525,13 @@ export class UIManager {
             });
         });
     }
-    
+
     /**
      * Helper to truncate text for previews
      */
-    private truncateText(text: string, maxLength: number): string {
+    truncateText(text: string, maxLength: number): string {
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
-    }
     }
 
     // Helper methods
@@ -599,11 +598,11 @@ export class UIManager {
     /**
      * Sets up the sidebar toggle functionality
      */
-    private setupSidebarToggle(): void {
+    setupSidebarToggle(): void {
         const toggleBtn = this.elements.toggleSidebarBtn;
         const sidebar = document.querySelector('.sidebar') as HTMLElement;
         const app = document.querySelector('.app') as HTMLElement;
-        
+
         if (toggleBtn) {
             toggleBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('collapsed');
@@ -615,7 +614,7 @@ export class UIManager {
     /**
      * Sets up keyboard shortcuts
      */
-    private setupKeyboardShortcuts(): void {
+    setupKeyboardShortcuts(): void {
         // "/" to focus the input field
         document.addEventListener('keydown', (e) => {
             if (e.key === '/' && !this.isUserTyping()) {
@@ -628,15 +627,15 @@ export class UIManager {
         this.elements.messageInput.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
-                
+
                 if (this.elements.messageInput.value.trim()) {
                     // Get current values
                     const message = this.elements.messageInput.value;
                     const conversationId = this.stateManager.getCurrentConversationId();
-                    
+
                     // Clear input immediately for better UX
                     this.elements.messageInput.value = '';
-                    
+
                     // Trigger the message send
                     if (conversationId && this.onAction) {
                         this.onAction('send_message', { content: message });
@@ -649,10 +648,10 @@ export class UIManager {
     /**
      * Helper to check if user is already typing in an input field
      */
-    private isUserTyping(): boolean {
+    isUserTyping(): boolean {
         const activeEl = document.activeElement;
-        return activeEl instanceof HTMLInputElement || 
-               activeEl instanceof HTMLTextAreaElement || 
-               activeEl?.getAttribute('contenteditable') === 'true';
+        return activeEl instanceof HTMLInputElement ||
+            activeEl instanceof HTMLTextAreaElement ||
+            activeEl?.getAttribute('contenteditable') === 'true';
     }
 }
