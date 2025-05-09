@@ -212,7 +212,7 @@ export class UIManager {
         // Show settings panel and overlay
         this.elements.settingsPanel.classList.add('visible');
         this.elements.settingsOverlay.classList.add('visible');
-        
+
         // Add class to main app for styling
         const app = document.querySelector('.app') as HTMLElement;
         app.classList.add('settings-open');
@@ -221,7 +221,7 @@ export class UIManager {
     closeSettingsModal(): void {
         this.elements.settingsPanel.classList.remove('visible');
         this.elements.settingsOverlay.classList.remove('visible');
-        
+
         // Remove class from main app
         const app = document.querySelector('.app') as HTMLElement;
         app.classList.remove('settings-open');
@@ -344,12 +344,6 @@ export class UIManager {
             }
         });
 
-        // Add timestamp
-        const metaEl = document.createElement('div');
-        metaEl.className = 'message-meta';
-        metaEl.textContent = this.formatTime(new Date());
-        messageEl.appendChild(metaEl);
-
         this.elements.messagesContainer.appendChild(messageEl);
 
         // Set up event listeners for tool pair toggles
@@ -457,7 +451,7 @@ export class UIManager {
 
             if (headerEl && bodyEl) {
                 const isLongContent = resultContent.length > 500;
-                
+
                 headerEl.innerHTML = `
                     <div>
                         <span>Result</span>
@@ -465,13 +459,13 @@ export class UIManager {
                     </div>
                     <span class="tool-collapse-toggle" title="Toggle content visibility">▼</span>
                 `.replace(/\s+/g, ' ').trim();
-                
+
                 bodyEl.innerHTML = `<div>${resultContent}</div>`.replace(/\s+/g, ' ').trim();
-                
+
                 // Add collapsed class for long content
                 if (isLongContent) {
                     bodyEl.classList.add('collapsed');
-                    
+
                     // Add toggle button
                     const toggleButton = document.createElement('div');
                     toggleButton.className = 'tool-toggle';
@@ -481,11 +475,11 @@ export class UIManager {
                         bodyEl.classList.toggle('collapsed');
                         toggleButton.textContent = bodyEl.classList.contains('collapsed') ? 'Show more' : 'Show less';
                     });
-                    
+
                     // Add it after the body element
                     bodyEl.parentNode?.insertBefore(toggleButton, bodyEl.nextSibling);
                 }
-                
+
                 // Add collapsible functionality
                 const collapseToggle = headerEl.querySelector('.tool-collapse-toggle');
                 if (collapseToggle) {
@@ -494,7 +488,7 @@ export class UIManager {
                         const isHidden = bodyHtmlEl.style.display === 'none';
                         bodyHtmlEl.style.display = isHidden ? 'block' : 'none';
                         collapseToggle.textContent = isHidden ? '▼' : '▶';
-                        
+
                         // Hide/show the toggle button as well
                         const toggleBtn = bodyEl.nextSibling as HTMLElement;
                         if (toggleBtn && toggleBtn.classList.contains('tool-toggle')) {
@@ -529,7 +523,7 @@ export class UIManager {
         }
 
         resultEl.className = `tool-result${errorClass}`;
-        
+
         // Create a more interactive header with a toggle button
         const headerContent = `
             <div class="tool-header">
@@ -539,16 +533,16 @@ export class UIManager {
                 <span class="tool-collapse-toggle" title="Toggle content visibility">▼</span>
             </div>
         `.replace(/\s+/g, ' ').trim();
-        
+
         // Determine if we should collapse the content initially
         const isLongContent = resultContent.length > 500;
         const bodyClass = isLongContent ? 'tool-body collapsed' : 'tool-body';
-        
+
         resultEl.innerHTML = `
             ${headerContent}
             <div class="${bodyClass}">${resultContent}</div>
         `.replace(/\s+/g, ' ').trim();
-        
+
         // Add toggle button for long content
         if (isLongContent) {
             const toggleButton = document.createElement('div');
@@ -562,10 +556,10 @@ export class UIManager {
                     toggleButton.textContent = bodyEl.classList.contains('collapsed') ? 'Show more' : 'Show less';
                 }
             });
-            
+
             resultEl.appendChild(toggleButton);
         }
-        
+
         // Add collapsible functionality
         const collapseToggle = resultEl.querySelector('.tool-collapse-toggle');
         if (collapseToggle) {
@@ -576,7 +570,7 @@ export class UIManager {
                     const isHidden = bodyHtmlEl.style.display === 'none';
                     bodyHtmlEl.style.display = isHidden ? 'block' : 'none';
                     collapseToggle.textContent = isHidden ? '▼' : '▶';
-                    
+
                     // Hide/show the toggle button as well
                     const toggleBtn = resultEl.querySelector('.tool-toggle') as HTMLElement;
                     if (toggleBtn) {
@@ -585,7 +579,7 @@ export class UIManager {
                 }
             });
         }
-        
+
         return resultEl;
     }
 
@@ -644,128 +638,128 @@ export class UIManager {
     // Helper methods
 
     formatMessageContent(content: string): string {
-    // Very basic markdown-like formatting
-    // This could be replaced with a proper Markdown parser
-    let formatted = content
-        // Escape HTML
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        // Convert URLs to links
-        .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')
-        // Convert code blocks
-        .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
-        // Convert inline code
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        // Convert bold text
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        // Convert italic text
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        // Convert line breaks
-        .replace(/\n/g, '<br>');
+        // Very basic markdown-like formatting
+        // This could be replaced with a proper Markdown parser
+        let formatted = content
+            // Escape HTML
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            // Convert URLs to links
+            .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')
+            // Convert code blocks
+            .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
+            // Convert inline code
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            // Convert bold text
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            // Convert italic text
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+            // Convert line breaks
+            .replace(/\n/g, '<br>');
 
-    return formatted;
-}
+        return formatted;
+    }
 
     formatDate(timestamp: number): string {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) {
-        return 'Today';
-    } else if (diffDays === 1) {
-        return 'Yesterday';
-    } else if (diffDays < 7) {
-        return `${diffDays} days ago`;
-    } else {
-        return date.toLocaleDateString();
+        if (diffDays === 0) {
+            return 'Today';
+        } else if (diffDays === 1) {
+            return 'Yesterday';
+        } else if (diffDays < 7) {
+            return `${diffDays} days ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
     }
-}
 
     formatTime(date: Date): string {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
     scrollToBottom(): void {
-    const container = this.elements.messagesContainer;
-    container.scrollTop = container.scrollHeight;
-}
+        const container = this.elements.messagesContainer;
+        container.scrollTop = container.scrollHeight;
+    }
 
     autoResizeTextarea(textarea: HTMLTextAreaElement): void {
-    // Reset height to auto to get correct scrollHeight
-    textarea.style.height = 'auto';
+        // Reset height to auto to get correct scrollHeight
+        textarea.style.height = 'auto';
 
-    // Set height to scrollHeight
-    const newHeight = Math.min(textarea.scrollHeight, 150);
-    textarea.style.height = `${newHeight}px`;
-}
+        // Set height to scrollHeight
+        const newHeight = Math.min(textarea.scrollHeight, 150);
+        textarea.style.height = `${newHeight}px`;
+    }
 
-/**
- * Sets up the sidebar toggle functionality
- */
+    /**
+     * Sets up the sidebar toggle functionality
+     */
     setupSidebarToggle(): void {
-    const toggleBtn = this.elements.sidebarToggleBtn;
-    const app = document.querySelector('.app') as HTMLElement;
+        const toggleBtn = this.elements.sidebarToggleBtn;
+        const app = document.querySelector('.app') as HTMLElement;
 
-    if(toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
-            app.classList.toggle('sidebar-collapsed');
-            
-            // Save state to localStorage
-            localStorage.setItem('sidebar-collapsed', app.classList.contains('sidebar-collapsed').toString());
-        });
-    }
-    
-    // Load initial state from localStorage
-    const sidebarCollapsed = localStorage.getItem('sidebar-collapsed');
-    if (sidebarCollapsed === 'true') {
-        app.classList.add('sidebar-collapsed');
-    }
-}
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                app.classList.toggle('sidebar-collapsed');
 
-/**
- * Sets up keyboard shortcuts
- */
-    setupKeyboardShortcuts(): void {
-    // "/" to focus the input field
-    document.addEventListener('keydown', (e) => {
-        if (e.key === '/' && !this.isUserTyping()) {
-            e.preventDefault();
-            this.elements.messageInput.focus();
+                // Save state to localStorage
+                localStorage.setItem('sidebar-collapsed', app.classList.contains('sidebar-collapsed').toString());
+            });
         }
-    });
 
-    // Ctrl+Enter to send message
-    this.elements.messageInput.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault();
+        // Load initial state from localStorage
+        const sidebarCollapsed = localStorage.getItem('sidebar-collapsed');
+        if (sidebarCollapsed === 'true') {
+            app.classList.add('sidebar-collapsed');
+        }
+    }
 
-            if (this.elements.messageInput.value.trim()) {
-                // Get current values
-                const message = this.elements.messageInput.value;
-                const conversationId = this.stateManager.getCurrentConversationId();
+    /**
+     * Sets up keyboard shortcuts
+     */
+    setupKeyboardShortcuts(): void {
+        // "/" to focus the input field
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && !this.isUserTyping()) {
+                e.preventDefault();
+                this.elements.messageInput.focus();
+            }
+        });
 
-                // Clear input immediately for better UX
-                this.elements.messageInput.value = '';
+        // Ctrl+Enter to send message
+        this.elements.messageInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
 
-                // Trigger the message send
-                if (conversationId && this.onAction) {
-                    this.onAction('send_message', { content: message });
+                if (this.elements.messageInput.value.trim()) {
+                    // Get current values
+                    const message = this.elements.messageInput.value;
+                    const conversationId = this.stateManager.getCurrentConversationId();
+
+                    // Clear input immediately for better UX
+                    this.elements.messageInput.value = '';
+
+                    // Trigger the message send
+                    if (conversationId && this.onAction) {
+                        this.onAction('send_message', { content: message });
+                    }
                 }
             }
-        }
-    });
-}
+        });
+    }
 
-/**
- * Helper to check if user is already typing in an input field
- */
+    /**
+     * Helper to check if user is already typing in an input field
+     */
     isUserTyping(): boolean {
-    const activeEl = document.activeElement;
-    return activeEl instanceof HTMLInputElement ||
-        activeEl instanceof HTMLTextAreaElement ||
-        activeEl?.getAttribute('contenteditable') === 'true';
-}
+        const activeEl = document.activeElement;
+        return activeEl instanceof HTMLInputElement ||
+            activeEl instanceof HTMLTextAreaElement ||
+            activeEl?.getAttribute('contenteditable') === 'true';
+    }
 }

@@ -11,6 +11,7 @@
     --bg-color: #FFFFFF;
     --sidebar-bg: #F9FAFB;
     --border-color: #E5E7EB;
+    --highlight-color: #E0E7FF;
     --user-message-bg: #F3F4F6;
     --assistant-message-bg: #F0ECFE;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -284,19 +285,13 @@ body {
     flex-direction: column;
     width: 80%; /* Consistent width for all messages */
     max-width: 800px; /* Maximum width to prevent stretching on large screens */
-    border-radius: 0.5rem;
     padding: 1rem;
     margin-bottom: 1rem;
+    border-bottom: 1px solid var(--highlight-color);
 }
 
-/* Update message types to use shared styling */
-.message-user {
-    background-color: var(--user-message-bg);
-    border-left: 4px solid var(--primary-color);
-}
 
 .message-assistant {
-    background-color: var(--assistant-message-bg);
     border-left: 4px solid var(--primary-hover);
 }
 
