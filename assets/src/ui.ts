@@ -533,11 +533,10 @@ export class UIManager {
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
-}
 
-// Helper methods
+    // Helper methods
 
-formatMessageContent(content: string): string {
+    formatMessageContent(content: string): string {
     // Very basic markdown-like formatting
     // This could be replaced with a proper Markdown parser
     let formatted = content
@@ -561,7 +560,7 @@ formatMessageContent(content: string): string {
     return formatted;
 }
 
-formatDate(timestamp: number): string {
+    formatDate(timestamp: number): string {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -578,16 +577,16 @@ formatDate(timestamp: number): string {
     }
 }
 
-formatTime(date: Date): string {
+    formatTime(date: Date): string {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-scrollToBottom(): void {
+    scrollToBottom(): void {
     const container = this.elements.messagesContainer;
     container.scrollTop = container.scrollHeight;
 }
 
-autoResizeTextarea(textarea: HTMLTextAreaElement): void {
+    autoResizeTextarea(textarea: HTMLTextAreaElement): void {
     // Reset height to auto to get correct scrollHeight
     textarea.style.height = 'auto';
 
@@ -599,7 +598,7 @@ autoResizeTextarea(textarea: HTMLTextAreaElement): void {
 /**
  * Sets up the sidebar toggle functionality
  */
-setupSidebarToggle(): void {
+    setupSidebarToggle(): void {
     const toggleBtn = this.elements.toggleSidebarBtn;
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
     const app = document.querySelector('.app') as HTMLElement;
@@ -615,7 +614,7 @@ setupSidebarToggle(): void {
 /**
  * Sets up keyboard shortcuts
  */
-setupKeyboardShortcuts(): void {
+    setupKeyboardShortcuts(): void {
     // "/" to focus the input field
     document.addEventListener('keydown', (e) => {
         if (e.key === '/' && !this.isUserTyping()) {
@@ -649,7 +648,7 @@ setupKeyboardShortcuts(): void {
 /**
  * Helper to check if user is already typing in an input field
  */
-isUserTyping(): boolean {
+    isUserTyping(): boolean {
     const activeEl = document.activeElement;
     return activeEl instanceof HTMLInputElement ||
         activeEl instanceof HTMLTextAreaElement ||
