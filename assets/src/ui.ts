@@ -490,8 +490,9 @@ export class UIManager {
                 const collapseToggle = headerEl.querySelector('.tool-collapse-toggle');
                 if (collapseToggle) {
                     collapseToggle.addEventListener('click', () => {
-                        const isHidden = bodyEl.style.display === 'none';
-                        bodyEl.style.display = isHidden ? 'block' : 'none';
+                        const bodyHtmlEl = bodyEl as HTMLElement;
+                        const isHidden = bodyHtmlEl.style.display === 'none';
+                        bodyHtmlEl.style.display = isHidden ? 'block' : 'none';
                         collapseToggle.textContent = isHidden ? '▼' : '▶';
                         
                         // Hide/show the toggle button as well
@@ -571,12 +572,13 @@ export class UIManager {
             collapseToggle.addEventListener('click', () => {
                 const bodyEl = resultEl.querySelector('.tool-body');
                 if (bodyEl) {
-                    const isHidden = bodyEl.style.display === 'none';
-                    bodyEl.style.display = isHidden ? 'block' : 'none';
+                    const bodyHtmlEl = bodyEl as HTMLElement;
+                    const isHidden = bodyHtmlEl.style.display === 'none';
+                    bodyHtmlEl.style.display = isHidden ? 'block' : 'none';
                     collapseToggle.textContent = isHidden ? '▼' : '▶';
                     
                     // Hide/show the toggle button as well
-                    const toggleBtn = resultEl.querySelector('.tool-toggle');
+                    const toggleBtn = resultEl.querySelector('.tool-toggle') as HTMLElement;
                     if (toggleBtn) {
                         toggleBtn.style.display = isHidden ? 'block' : 'none';
                     }
