@@ -460,11 +460,104 @@ body {
 }
 
 /* Tool Display Styles */
-.tool-use, .tool-result {
-    background-color: #f7f7f7;
+/* Container for tool call + result pair */
+.tool-pair {
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     margin: 12px 0;
-    padding: 12px;
+    overflow: hidden;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Summary header always visible */
+.tool-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: #f5f5f5;
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+}
+
+.tool-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tool-name {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.tool-preview {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tool-indicators {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-indicator.success {
+    background-color: #10B981; /* Green */
+}
+
+.status-indicator.error {
+    background-color: #EF4444; /* Red */
+}
+
+.status-indicator.pending {
+    background-color: #F59E0B; /* Amber */
+}
+
+/* Content (hidden when collapsed) */
+.tool-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+/* When expanded */
+.tool-pair.expanded .tool-details {
+    max-height: 1000px; /* Arbitrary large value */
+}
+
+/* Toggle icon animation */
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.tool-pair.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.tool-use, .tool-result {
+    padding: 12px 16px;
+}
+
+.tool-use {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tool-result {
+    background-color: #f0f8ff;
 }
 
 .tool-header {
@@ -472,6 +565,24 @@ body {
     margin-bottom: 8px;
     color: #555;
     font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tool-copy-btn {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.tool-copy-btn:hover {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
 }
 
 .tool-body {
@@ -488,14 +599,13 @@ body {
     font-size: 0.85rem;
 }
 
-.tool-result {
-    background-color: #f0f8ff;
-    border-left: 3px solid var(--primary-color);
+.tool-result-error {
+    background-color: #fff8f8 !important;
 }
 
-.tool-result-error {
-    background-color: #fff8f8;
-    border-left: 3px solid #e53e3e;
+.tool-pair.error .tool-summary {
+    background-color: #FEF2F2;
+    border-bottom: 1px solid #FECACA;
 }
 
 /* Responsiveness */

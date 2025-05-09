@@ -282,60 +282,257 @@ export class UIManager {
         this.scrollToBottom();
     }
 
+    // Store for pending tool calls until matched with results
+    private pendingToolCalls: Map<string, HTMLElement> = new Map();
+
     addMessage(message: Message, scroll: boolean = true): void {
         // Remove loading indicator if present
         this.removeLoadingMessage();
 
         const messageEl = document.createElement('div');
         messageEl.className = `message message-${message.role}`;
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'message-content';
+        messageEl.appendChild(contentWrapper);
 
-        // Format message content based on content type
-        let formattedContent = '';
+        // Process each content block
+        const toolBlocks: {type: string, element: HTMLElement, id?: string}[] = [];
         
         message.content.forEach(block => {
             if (block.type === 'text') {
                 // Handle regular text content
-                formattedContent += this.formatMessageContent(block.text);
+                const textEl = document.createElement('div');
+                textEl.innerHTML = this.formatMessageContent(block.text);
+                contentWrapper.appendChild(textEl);
             } 
             else if (block.type === 'tool_use') {
-                // Handle tool use
-                formattedContent += `<div class="tool-use">
-                    <div class="tool-header">🔧 Tool Use: ${block.name}</div>
-                    <div class="tool-body">
-                        <pre>${JSON.stringify(block.input || {}, null, 2)}</pre>
-                    </div>
-                </div>`;
+                // Create tool call element
+                const toolPairEl = this.createToolPairElement(block.id, block.name, block.input);
+                toolBlocks.push({type: 'tool_use', element: toolPairEl, id: block.id});
+                
+                // Store in pending map for later pairing
+                this.pendingToolCalls.set(block.id, toolPairEl);
+                contentWrapper.appendChild(toolPairEl);
             } 
             else if (block.type === 'tool_result') {
-                // Handle tool result
-                let resultContent = '';
-                
-                if (block.content && Array.isArray(block.content)) {
-                    block.content.forEach(innerBlock => {
-                        if (innerBlock.type === 'text') {
-                            resultContent += this.formatMessageContent(innerBlock.text);
-                        }
-                    });
+                // Try to find matching tool call
+                if (this.pendingToolCalls.has(block.tool_use_id)) {
+                    // Update existing tool pair with result
+                    const toolPairEl = this.pendingToolCalls.get(block.tool_use_id)!;
+                    this.updateToolPairWithResult(toolPairEl, block);
+                    this.pendingToolCalls.delete(block.tool_use_id);
+                    
+                    // Mark this block as processed (no need to add again)
+                    toolBlocks.push({type: 'tool_result', element: toolPairEl, id: block.tool_use_id});
+                } else {
+                    // If no matching tool call found, create standalone result
+                    const standaloneResultEl = this.createStandaloneResultElement(block);
+                    contentWrapper.appendChild(standaloneResultEl);
+                    toolBlocks.push({type: 'tool_result', element: standaloneResultEl});
                 }
-                
-                const errorClass = block.is_error ? ' tool-result-error' : '';
-                formattedContent += `<div class="tool-result${errorClass}">
-                    <div class="tool-header">🔍 Tool Result</div>
-                    <div class="tool-body">${resultContent}</div>
-                </div>`;
             }
         });
 
-        messageEl.innerHTML = `
-            <div class="message-content">${formattedContent}</div>
-            <div class="message-meta">${this.formatTime(new Date())}</div>
-        `;
+        // Add timestamp
+        const metaEl = document.createElement('div');
+        metaEl.className = 'message-meta';
+        metaEl.textContent = this.formatTime(new Date());
+        messageEl.appendChild(metaEl);
 
         this.elements.messagesContainer.appendChild(messageEl);
+
+        // Set up event listeners for tool pair toggles
+        toolBlocks.forEach(item => {
+            if (item.type === 'tool_use' && item.element.classList.contains('tool-pair')) {
+                this.setupToolPairToggle(item.element);
+            }
+        });
 
         if (scroll) {
             this.scrollToBottom();
         }
+    }
+
+    /**
+     * Creates a collapsible tool pair element
+     */
+    private createToolPairElement(id: string, name: string, input: any): HTMLElement {
+        const toolPairEl = document.createElement('div');
+        toolPairEl.className = 'tool-pair';
+        toolPairEl.dataset.toolId = id;
+        
+        // Create preview text
+        const inputStr = JSON.stringify(input);
+        const preview = this.truncateText(inputStr, 40);
+        
+        // Create summary header (always visible)
+        toolPairEl.innerHTML = `
+            <div class="tool-summary">
+                <div class="tool-info">
+                    <span class="tool-name">${name}</span>
+                    <span class="tool-preview">${preview}</span>
+                </div>
+                <div class="tool-indicators">
+                    <span class="status-indicator pending"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" 
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+            </div>
+            <div class="tool-details">
+                <div class="tool-use">
+                    <div class="tool-header">
+                        Tool Call: ${name}
+                        <button class="tool-copy-btn" data-content="input">Copy</button>
+                    </div>
+                    <div class="tool-body">
+                        <pre>${JSON.stringify(input || {}, null, 2)}</pre>
+                    </div>
+                </div>
+                <div class="tool-result">
+                    <div class="tool-header">
+                        Waiting for result...
+                    </div>
+                    <div class="tool-body">
+                        <div class="loading-dots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return toolPairEl;
+    }
+
+    /**
+     * Updates a tool pair element with a result
+     */
+    private updateToolPairWithResult(toolPairEl: HTMLElement, result: any): void {
+        // Get result content
+        let resultContent = '';
+        if (result.content && Array.isArray(result.content)) {
+            result.content.forEach(innerBlock => {
+                if (innerBlock.type === 'text') {
+                    resultContent += this.formatMessageContent(innerBlock.text);
+                }
+            });
+        }
+        
+        // Update status indicator
+        const statusIndicator = toolPairEl.querySelector('.status-indicator');
+        if (statusIndicator) {
+            statusIndicator.classList.remove('pending');
+            if (result.is_error) {
+                statusIndicator.classList.add('error');
+                toolPairEl.classList.add('error');
+            } else {
+                statusIndicator.classList.add('success');
+            }
+        }
+        
+        // Update tool result content
+        const toolResultEl = toolPairEl.querySelector('.tool-result');
+        if (toolResultEl) {
+            if (result.is_error) {
+                toolResultEl.classList.add('tool-result-error');
+            }
+            
+            const headerEl = toolResultEl.querySelector('.tool-header');
+            const bodyEl = toolResultEl.querySelector('.tool-body');
+            
+            if (headerEl && bodyEl) {
+                headerEl.innerHTML = `Result <button class="tool-copy-btn" data-content="result">Copy</button>`;
+                bodyEl.innerHTML = `<div>${resultContent}</div>`;
+            }
+        }
+        
+        // Auto-expand on error
+        if (result.is_error) {
+            toolPairEl.classList.add('expanded');
+        }
+    }
+
+    /**
+     * Creates a standalone result element (for cases where tool call is missing)
+     */
+    private createStandaloneResultElement(result: any): HTMLElement {
+        const resultEl = document.createElement('div');
+        const errorClass = result.is_error ? ' tool-result-error' : '';
+        
+        // Get result content
+        let resultContent = '';
+        if (result.content && Array.isArray(result.content)) {
+            result.content.forEach(innerBlock => {
+                if (innerBlock.type === 'text') {
+                    resultContent += this.formatMessageContent(innerBlock.text);
+                }
+            });
+        }
+        
+        resultEl.className = `tool-result${errorClass}`;
+        resultEl.innerHTML = `
+            <div class="tool-header">Tool Result (ID: ${result.tool_use_id.substring(0, 8)}...)</div>
+            <div class="tool-body">${resultContent}</div>
+        `;
+        
+        return resultEl;
+    }
+    
+    /**
+     * Sets up click handler for tool pair toggle
+     */
+    private setupToolPairToggle(element: HTMLElement): void {
+        const summaryEl = element.querySelector('.tool-summary');
+        if (summaryEl) {
+            summaryEl.addEventListener('click', () => {
+                element.classList.toggle('expanded');
+            });
+        }
+        
+        // Set up copy buttons
+        const copyButtons = element.querySelectorAll('.tool-copy-btn');
+        copyButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent toggle
+                const contentType = (btn as HTMLElement).dataset.content;
+                let textToCopy = '';
+                
+                if (contentType === 'input') {
+                    const inputEl = element.querySelector('.tool-use pre');
+                    if (inputEl) textToCopy = inputEl.textContent || '';
+                } else if (contentType === 'result') {
+                    const resultEl = element.querySelector('.tool-result .tool-body');
+                    if (resultEl) textToCopy = resultEl.textContent || '';
+                }
+                
+                if (textToCopy) {
+                    navigator.clipboard.writeText(textToCopy)
+                        .then(() => {
+                            const originalText = btn.textContent;
+                            btn.textContent = 'Copied!';
+                            setTimeout(() => {
+                                btn.textContent = originalText;
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy: ', err);
+                        });
+                }
+            });
+        });
+    }
+    
+    /**
+     * Helper to truncate text for previews
+     */
+    private truncateText(text: string, maxLength: number): string {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
     }
 
     // Helper methods
