@@ -17,6 +17,19 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --sidebar-width: 300px;
+    --transition-speed: 0.3s;
+    --transition-timing: ease-in-out;
+    --border-radius: 0.5rem;
+    --border-radius-sm: 0.25rem;
+    --card-bg: #FFFFFF;
+    --tool-use-bg: #F4F6FC;
+    --tool-use-border: #6A42C1;
+    --tool-result-bg: #EFF8F1;
+    --tool-result-border: #10B981;
+    --tool-error-bg: #FFF2F2;
+    --tool-error-border: #EF4444;
+    --settings-panel-width: 350px;
     --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -841,6 +854,42 @@ body {
     font-weight: 500;
 }
 
+/* RESPONSIVE STYLES */
+@media (max-width: 768px) {
+    .app {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-height: 50vh;
+        border-bottom: 1px solid var(--border-color);
+        border-right: none;
+    }
+    
+    .app.sidebar-collapsed .sidebar {
+        transform: translateY(calc(-100% + 40px));
+    }
+    
+    .sidebar-toggle-btn {
+        right: 10px;
+        top: auto;
+        bottom: -12px;
+        transform: none;
+    }
+    
+    .app.sidebar-collapsed .sidebar-toggle-btn {
+        right: 10px;
+        left: auto;
+        bottom: 10px;
+        top: auto;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+}
+
 /* TOOL USE STYLING */
 .message-tool-use,
 .message-tool-result {
@@ -951,64 +1000,4 @@ body {
 .tool-collapse-toggle:hover {
     background-color: rgba(0, 0, 0, 0.05);
     color: var(--primary-color);
-}
-
-/* RESPONSIVE DESIGN */
-@media (max-width: 768px) {
-    :root {
-        --sidebar-width: 100%;
-        --settings-panel-width: 100%;
-    }
-    
-    .app {
-        flex-direction: column;
-    }
-    
-    .sidebar {
-        width: 100%;
-        height: auto;
-        max-height: 40vh;
-    }
-    
-    .app.sidebar-collapsed .sidebar {
-        transform: translateY(calc(-100% + 40px));
-    }
-    
-    .sidebar-toggle-btn {
-        right: 10px;
-        top: auto;
-        bottom: -12px;
-        transform: none;
-    }
-    
-    .app.sidebar-collapsed .sidebar-toggle-btn {
-        right: 10px;
-        left: auto;
-        bottom: 10px;
-        top: auto;
-    }
-    
-    .main-content {
-        height: 60vh;
-    }
-    
-    .message {
-        max-width: 100%;
-    }
-    
-    .settings-panel {
-        width: 100%;
-    }
-    
-    .app.settings-open .main-content {
-        margin-right: 0;
-    }
-    
-    .settings-overlay.visible {
-        display: block;
-    }
-    
-    .conversation-item-meta {
-        display: none;
-    }
 }
