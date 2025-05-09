@@ -35,7 +35,7 @@ pub enum ClientMessage {
     /// Get conversation settings
     #[serde(rename = "get_settings")]
     GetSettings { conversation_id: String },
-    
+
     /// Get message by ID for chain-based navigation
     #[serde(rename = "get_message_by_id")]
     GetMessageById {
@@ -45,9 +45,7 @@ pub enum ClientMessage {
 
     /// Get the current head ID of the conversation chain
     #[serde(rename = "get_head_id")]
-    GetHeadId {
-        conversation_id: String,
-    },
+    GetHeadId { conversation_id: String },
 }
 
 /// Messages sent from server to clients
@@ -131,7 +129,7 @@ pub enum ServerMessage {
     #[serde(rename = "head_id")]
     HeadId {
         conversation_id: String,
-        head_id: String,
+        head_id: Option<String>,
     },
 }
 
@@ -258,10 +256,10 @@ pub enum ChatStateResponse {
 
     #[serde(rename = "error")]
     Error { error: ErrorInfo },
-    
+
     #[serde(rename = "head")]
-    Head { head: String },
-    
+    Head { head: Option<String> },
+
     #[serde(rename = "chat_message")]
     ChatMessage { message: ChatMessage },
 }
@@ -360,9 +358,9 @@ pub fn create_message_by_id_response(conversation_id: &str, message: ChatMessage
 }
 
 /// Create a head ID response
-pub fn create_head_id_response(conversation_id: &str, head_id: &str) -> ServerMessage {
+pub fn create_head_id_response(conversation_id: &str, head_id: &Option<String>) -> ServerMessage {
     ServerMessage::HeadId {
         conversation_id: conversation_id.to_string(),
-        head_id: head_id.to_string(),
+        head_id: head_id.clone(),
     }
 }

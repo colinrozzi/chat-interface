@@ -159,7 +159,7 @@ impl HttpHandlersGuest for Component {
             }
             "/styles.css" => {
                 // Serve CSS file
-                let css = include_str!("../assets/styles.css");
+                let css = include_str!("../assets/styles-updated.css");
                 HttpResponse {
                     status: 200,
                     headers: vec![("Content-Type".to_string(), "text/css".to_string())],
@@ -929,10 +929,10 @@ fn create_message_by_id_response(conversation_id: &str, message: ChatMessage) ->
     }
 }
 
-fn create_head_id_response(conversation_id: &str, head: &str) -> ServerMessage {
+fn create_head_id_response(conversation_id: &str, head: &Option<String>) -> ServerMessage {
     ServerMessage::HeadId {
         conversation_id: conversation_id.to_string(),
-        head_id: head.to_string(),
+        head_id: head.clone(),
     }
 }
 
@@ -965,4 +965,3 @@ fn generate_conversation_id(string: impl AsRef<[u8]>) -> String {
 }
 
 bindings::export!(Component with_types_in bindings);
-
