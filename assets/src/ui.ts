@@ -533,125 +533,126 @@ export class UIManager {
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
+}
 
-    // Helper methods
+// Helper methods
 
-    formatMessageContent(content: string): string {
-        // Very basic markdown-like formatting
-        // This could be replaced with a proper Markdown parser
-        let formatted = content
-            // Escape HTML
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            // Convert URLs to links
-            .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')
-            // Convert code blocks
-            .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
-            // Convert inline code
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            // Convert bold text
-            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-            // Convert italic text
-            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-            // Convert line breaks
-            .replace(/\n/g, '<br>');
+formatMessageContent(content: string): string {
+    // Very basic markdown-like formatting
+    // This could be replaced with a proper Markdown parser
+    let formatted = content
+        // Escape HTML
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // Convert URLs to links
+        .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')
+        // Convert code blocks
+        .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
+        // Convert inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Convert bold text
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        // Convert italic text
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Convert line breaks
+        .replace(/\n/g, '<br>');
 
-        return formatted;
+    return formatted;
+}
+
+formatDate(timestamp: number): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+        return 'Today';
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    } else {
+        return date.toLocaleDateString();
     }
+}
 
-    formatDate(timestamp: number): string {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+formatTime(date: Date): string {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-        if (diffDays === 0) {
-            return 'Today';
-        } else if (diffDays === 1) {
-            return 'Yesterday';
-        } else if (diffDays < 7) {
-            return `${diffDays} days ago`;
-        } else {
-            return date.toLocaleDateString();
-        }
-    }
+scrollToBottom(): void {
+    const container = this.elements.messagesContainer;
+    container.scrollTop = container.scrollHeight;
+}
 
-    formatTime(date: Date): string {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+autoResizeTextarea(textarea: HTMLTextAreaElement): void {
+    // Reset height to auto to get correct scrollHeight
+    textarea.style.height = 'auto';
 
-    scrollToBottom(): void {
-        const container = this.elements.messagesContainer;
-        container.scrollTop = container.scrollHeight;
-    }
+    // Set height to scrollHeight
+    const newHeight = Math.min(textarea.scrollHeight, 150);
+    textarea.style.height = `${newHeight}px`;
+}
 
-    autoResizeTextarea(textarea: HTMLTextAreaElement): void {
-        // Reset height to auto to get correct scrollHeight
-        textarea.style.height = 'auto';
+/**
+ * Sets up the sidebar toggle functionality
+ */
+setupSidebarToggle(): void {
+    const toggleBtn = this.elements.toggleSidebarBtn;
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+    const app = document.querySelector('.app') as HTMLElement;
 
-        // Set height to scrollHeight
-        const newHeight = Math.min(textarea.scrollHeight, 150);
-        textarea.style.height = `${newHeight}px`;
-    }
-
-    /**
-     * Sets up the sidebar toggle functionality
-     */
-    setupSidebarToggle(): void {
-        const toggleBtn = this.elements.toggleSidebarBtn;
-        const sidebar = document.querySelector('.sidebar') as HTMLElement;
-        const app = document.querySelector('.app') as HTMLElement;
-
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('collapsed');
-                app.classList.toggle('sidebar-collapsed');
-            });
-        }
-    }
-
-    /**
-     * Sets up keyboard shortcuts
-     */
-    setupKeyboardShortcuts(): void {
-        // "/" to focus the input field
-        document.addEventListener('keydown', (e) => {
-            if (e.key === '/' && !this.isUserTyping()) {
-                e.preventDefault();
-                this.elements.messageInput.focus();
-            }
+    if(toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            app.classList.toggle('sidebar-collapsed');
         });
+    }
+}
 
-        // Ctrl+Enter to send message
-        this.elements.messageInput.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
+/**
+ * Sets up keyboard shortcuts
+ */
+setupKeyboardShortcuts(): void {
+    // "/" to focus the input field
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && !this.isUserTyping()) {
+            e.preventDefault();
+            this.elements.messageInput.focus();
+        }
+    });
 
-                if (this.elements.messageInput.value.trim()) {
-                    // Get current values
-                    const message = this.elements.messageInput.value;
-                    const conversationId = this.stateManager.getCurrentConversationId();
+    // Ctrl+Enter to send message
+    this.elements.messageInput.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
 
-                    // Clear input immediately for better UX
-                    this.elements.messageInput.value = '';
+            if (this.elements.messageInput.value.trim()) {
+                // Get current values
+                const message = this.elements.messageInput.value;
+                const conversationId = this.stateManager.getCurrentConversationId();
 
-                    // Trigger the message send
-                    if (conversationId && this.onAction) {
-                        this.onAction('send_message', { content: message });
-                    }
+                // Clear input immediately for better UX
+                this.elements.messageInput.value = '';
+
+                // Trigger the message send
+                if (conversationId && this.onAction) {
+                    this.onAction('send_message', { content: message });
                 }
             }
-        });
-    }
+        }
+    });
+}
 
-    /**
-     * Helper to check if user is already typing in an input field
-     */
-    isUserTyping(): boolean {
-        const activeEl = document.activeElement;
-        return activeEl instanceof HTMLInputElement ||
-            activeEl instanceof HTMLTextAreaElement ||
-            activeEl?.getAttribute('contenteditable') === 'true';
-    }
+/**
+ * Helper to check if user is already typing in an input field
+ */
+isUserTyping(): boolean {
+    const activeEl = document.activeElement;
+    return activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        activeEl?.getAttribute('contenteditable') === 'true';
+}
 }
