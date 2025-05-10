@@ -61,7 +61,7 @@ export interface ModelConfig {
 
 export interface Settings {
   model_config: ModelConfig;
-  temperature: number;
+  temperature?: number; // Made optional with ? operator
   max_tokens: number;
   system_prompt: string;
   title: string;

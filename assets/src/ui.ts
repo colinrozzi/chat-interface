@@ -117,12 +117,16 @@ export class UIManager {
             e.preventDefault();
 
             const formData = new FormData(this.elements.settingsForm);
+            const temperatureValue = formData.get('temperature');
             const settings: Settings = {
                 model_config: {
                     model: formData.get('model') as string,
                     provider: 'anthropic'
                 },
-                temperature: parseFloat(formData.get('temperature') as string),
+                // Only include temperature if it's a valid value
+                ...(temperatureValue !== null && temperatureValue !== '' 
+                    ? { temperature: parseFloat(temperatureValue as string) } 
+                    : {}),
                 max_tokens: parseInt(formData.get('max_tokens') as string),
                 system_prompt: formData.get('system_prompt') as string,
                 title: this.stateManager.getCurrentConversation()?.title || 'New Conversation',
