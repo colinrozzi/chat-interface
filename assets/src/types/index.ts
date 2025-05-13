@@ -154,7 +154,6 @@ export interface UIElements {
     closeSettingsBtn: HTMLElement;
     sendBtn: HTMLElement;
     sidebarToggleBtn: HTMLElement;
-    renameBtn: HTMLElement;
 
     // Conversation elements
     conversationList: HTMLElement;

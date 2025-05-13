@@ -1010,19 +1010,43 @@ body {
 }
 
 
-/* Title section with rename button */
+/* Editable title styles */
 .title-section {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    position: relative;
 }
 
-#rename-btn {
-    opacity: 0.6;
-    padding: 4px;
+.editable-title {
+    padding: 4px 8px;
+    border-radius: 4px;
+    outline: none;
+    position: relative;
+    transition: background-color 0.2s ease;
+    min-width: 100px;
+}
+
+.editable-title:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.editable-title:focus {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 3px 7px; /* Adjust for the border */
+}
+
+.title-edit-hint {
+    opacity: 0.4;
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
     transition: opacity 0.2s ease;
+    pointer-events: none;
 }
 
-#rename-btn:hover {
-    opacity: 1;
+.title-section:hover .title-edit-hint {
+    opacity: 0.8;
 }

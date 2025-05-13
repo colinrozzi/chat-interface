@@ -29,7 +29,6 @@ export class UIManager {
             closeSettingsBtn: document.getElementById('close-settings-btn') as HTMLElement,
             sendBtn: document.getElementById('send-btn') as HTMLElement,
             sidebarToggleBtn: document.getElementById('sidebar-toggle-btn') as HTMLElement,
-            renameBtn: document.getElementById('rename-btn') as HTMLElement,
 
             // Conversation elements
             conversationList: document.getElementById('conversation-list') as HTMLElement,
@@ -114,10 +113,8 @@ export class UIManager {
             this.closeSettingsModal();
         });
         
-        // Rename button
-        this.elements.renameBtn.addEventListener('click', () => {
-            this.openRenameDialog();
-        });
+        // Set up inline title editing
+        this.setupTitleEditing();
 
         this.elements.settingsForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -207,25 +204,55 @@ export class UIManager {
         }
     }
 
-    // Conversation Rename Dialog
+    // Inline title editing
     
-    openRenameDialog(): void {
-        const currentConversation = this.stateManager.getCurrentConversation();
-        if (!currentConversation) return;
+    setupTitleEditing(): void {
+        const titleElement = this.elements.conversationTitle;
         
-        // Create a simple prompt dialog
-        const newTitle = prompt('Enter a new name for this conversation:', currentConversation.title);
+        // Handle focus (keep track of original content in case of cancel)
+        titleElement.addEventListener('focus', () => {
+            // Store original content in case user cancels
+            titleElement.dataset.originalContent = titleElement.textContent || '';
+            
+            // Select all text
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(titleElement);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+        });
         
-        // If cancelled or empty, do nothing
-        if (!newTitle || newTitle.trim() === '') return;
+        // Handle blur (save changes)
+        titleElement.addEventListener('blur', () => {
+            const newTitle = titleElement.textContent?.trim() || '';
+            const originalContent = titleElement.dataset.originalContent || '';
+            
+            // Only proceed if content actually changed and isn't empty
+            if (newTitle && newTitle !== originalContent) {
+                const currentConversation = this.stateManager.getCurrentConversation();
+                if (currentConversation && this.onAction) {
+                    this.onAction('rename_conversation', {
+                        conversationId: currentConversation.id,
+                        newTitle: newTitle
+                    });
+                }
+            } else if (!newTitle) {
+                // If empty, revert to original
+                titleElement.textContent = originalContent;
+            }
+        });
         
-        // Send rename request
-        if (this.onAction) {
-            this.onAction('rename_conversation', {
-                conversationId: currentConversation.id,
-                newTitle: newTitle.trim()
-            });
-        }
+        // Handle keyboard events (Enter to save, Escape to cancel)
+        titleElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                titleElement.blur();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                titleElement.textContent = titleElement.dataset.originalContent || '';
+                titleElement.blur();
+            }
+        });
     }
     
     // Settings modal
