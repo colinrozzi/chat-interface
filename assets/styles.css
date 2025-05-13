@@ -1008,3 +1008,21 @@ body {
     background-color: rgba(0, 0, 0, 0.05);
     color: var(--primary-color);
 }
+
+
+/* Title section with rename button */
+.title-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#rename-btn {
+    opacity: 0.6;
+    padding: 4px;
+    transition: opacity 0.2s ease;
+}
+
+#rename-btn:hover {
+    opacity: 1;
+}

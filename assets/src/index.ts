@@ -96,6 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     settings: data.settings
                 });
                 break;
+                
+            case 'rename_conversation':
+                websocketManager.sendMessage({
+                    action: 'rename_conversation',
+                    conversation_id: data.conversationId,
+                    new_title: data.newTitle
+                });
+                break;
         }
     };
     

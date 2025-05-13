@@ -14,6 +14,7 @@ import {
     SettingsMessage,
     HistoryMessage,
     MessagesResponse,
+    ConversationRenamedMessage,
     Message
 } from './types';
 
@@ -60,6 +61,10 @@ export class MessageHandler {
                 
             case 'settings_updated':
                 this.handleSettingsUpdated(message);
+                break;
+                
+            case 'conversation_renamed':
+                this.handleConversationRenamed(message as ConversationRenamedMessage);
                 break;
                 
             case 'error':
@@ -217,6 +222,31 @@ export class MessageHandler {
     handleSettingsUpdated(message: ServerMessage): void {
         // No specific handling needed, could show a success toast
         console.log('Settings updated for conversation:', message.conversation_id);
+    }
+    
+    /**
+     * Handle conversation_renamed message
+     * @param {ConversationRenamedMessage} message - The conversation_renamed message
+     */
+    handleConversationRenamed(message: ConversationRenamedMessage): void {
+        const { conversation_id, title } = message;
+        
+        // Update the conversation title in state
+        const conversations = this.stateManager.getConversations();
+        if (conversations[conversation_id]) {
+            conversations[conversation_id].title = title;
+            
+            // Update the current conversation display if this is the active conversation
+            if (conversation_id === this.stateManager.getCurrentConversationId()) {
+                this.uiManager.elements.conversationTitle.textContent = title;
+            }
+            
+            // Update the conversation list
+            this.uiManager.updateConversationList();
+            
+            // Show a success message
+            console.log('Conversation renamed:', conversation_id, 'New title:', title);
+        }
     }
     
     /**

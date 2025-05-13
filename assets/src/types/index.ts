@@ -132,6 +132,13 @@ export interface MessagesResponse extends ServerMessage {
   messages: Message[];
 }
 
+export interface ConversationRenamedMessage extends ServerMessage {
+  type: 'conversation_renamed';
+  conversation_id: string;
+  title: string;
+  message: string;
+}
+
 // UI Event Types
 
 // Added toggle sidebar button to UI Elements
@@ -147,6 +154,7 @@ export interface UIElements {
     closeSettingsBtn: HTMLElement;
     sendBtn: HTMLElement;
     sidebarToggleBtn: HTMLElement;
+    renameBtn: HTMLElement;
 
     // Conversation elements
     conversationList: HTMLElement;

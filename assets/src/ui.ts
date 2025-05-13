@@ -29,6 +29,7 @@ export class UIManager {
             closeSettingsBtn: document.getElementById('close-settings-btn') as HTMLElement,
             sendBtn: document.getElementById('send-btn') as HTMLElement,
             sidebarToggleBtn: document.getElementById('sidebar-toggle-btn') as HTMLElement,
+            renameBtn: document.getElementById('rename-btn') as HTMLElement,
 
             // Conversation elements
             conversationList: document.getElementById('conversation-list') as HTMLElement,
@@ -111,6 +112,11 @@ export class UIManager {
 
         this.elements.closeSettingsBtn.addEventListener('click', () => {
             this.closeSettingsModal();
+        });
+        
+        // Rename button
+        this.elements.renameBtn.addEventListener('click', () => {
+            this.openRenameDialog();
         });
 
         this.elements.settingsForm.addEventListener('submit', (e) => {
@@ -201,6 +207,27 @@ export class UIManager {
         }
     }
 
+    // Conversation Rename Dialog
+    
+    openRenameDialog(): void {
+        const currentConversation = this.stateManager.getCurrentConversation();
+        if (!currentConversation) return;
+        
+        // Create a simple prompt dialog
+        const newTitle = prompt('Enter a new name for this conversation:', currentConversation.title);
+        
+        // If cancelled or empty, do nothing
+        if (!newTitle || newTitle.trim() === '') return;
+        
+        // Send rename request
+        if (this.onAction) {
+            this.onAction('rename_conversation', {
+                conversationId: currentConversation.id,
+                newTitle: newTitle.trim()
+            });
+        }
+    }
+    
     // Settings modal
 
     openSettingsModal(): void {
