@@ -877,6 +877,34 @@ fn handle_client_message(
                 }
             }
         }
+        ClientMessage::RenameConversation { conversation_id, new_title } => {
+            // Check if the conversation exists
+            if !interface_state.conversation_metadata.contains_key(&conversation_id) {
+                let error_msg = create_error_message(
+                    &conversation_id,
+                    "Conversation not found",
+                    "CONVERSATION_NOT_FOUND",
+                );
+                return Ok(vec![create_websocket_text_message(&error_msg)?]);
+            }
+
+            // Update the conversation title
+            match state::update_conversation_title(interface_state, &conversation_id, new_title.clone()) {
+                Ok(_) => {
+                    // Create a response confirming the title was updated
+                    let response_msg = protocol::create_conversation_renamed_message(&conversation_id, &new_title);
+                    return Ok(vec![create_websocket_text_message(&response_msg)?]);
+                }
+                Err(e) => {
+                    let error_msg = create_error_message(
+                        &conversation_id,
+                        &format!("Error updating title: {}", e),
+                        "UPDATE_ERROR",
+                    );
+                    return Ok(vec![create_websocket_text_message(&error_msg)?]);
+                }
+            }
+        }
     }
 }
 

@@ -36,6 +36,13 @@ pub enum ClientMessage {
     #[serde(rename = "get_settings")]
     GetSettings { conversation_id: String },
 
+    /// Rename a conversation
+    #[serde(rename = "rename_conversation")]
+    RenameConversation {
+        conversation_id: String,
+        new_title: String,
+    },
+
     /// Get message by ID for chain-based navigation
     #[serde(rename = "get_message_by_id")]
     GetMessageById {
@@ -112,6 +119,14 @@ pub enum ServerMessage {
     #[serde(rename = "settings_updated")]
     SettingsUpdated {
         conversation_id: String,
+        message: String,
+    },
+
+    /// Conversation renamed confirmation
+    #[serde(rename = "conversation_renamed")]
+    ConversationRenamed {
+        conversation_id: String,
+        title: String,
         message: String,
     },
 
@@ -362,5 +377,14 @@ pub fn create_head_id_response(conversation_id: &str, head_id: &Option<String>) 
     ServerMessage::HeadId {
         conversation_id: conversation_id.to_string(),
         head_id: head_id.clone(),
+    }
+}
+
+/// Create a conversation renamed response
+pub fn create_conversation_renamed_message(conversation_id: &str, title: &str) -> ServerMessage {
+    ServerMessage::ConversationRenamed {
+        conversation_id: conversation_id.to_string(),
+        title: title.to_string(),
+        message: format!("Conversation renamed to '{}'", title),
     }
 }

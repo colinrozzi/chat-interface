@@ -192,6 +192,27 @@ pub fn register_conversation_actor(
     );
 }
 
+/// Update conversation title
+pub fn update_conversation_title(
+    state: &mut InterfaceState,
+    conversation_id: &str,
+    new_title: String,
+) -> Result<(), String> {
+    // Check if the conversation exists
+    if let Some(metadata) = state.conversation_metadata.get_mut(conversation_id) {
+        // Update the title
+        metadata.title = new_title;
+        metadata.updated_at = crate::bindings::ntwk::theater::timing::now();
+        
+        // Store the updated state
+        store_state(state)?;
+        
+        Ok(())
+    } else {
+        Err(format!("Conversation {} not found", conversation_id))
+    }
+}
+
 /// Update conversation metadata
 pub fn update_conversation_metadata(
     state: &mut InterfaceState,
